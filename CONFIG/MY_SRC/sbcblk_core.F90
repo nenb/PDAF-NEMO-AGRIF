@@ -164,37 +164,16 @@ CONTAINS
       !!---------------------------------------------------------------------
       !
       !       
-write(*,*) 'before entrance  sbc_blk_core'
+
   
                                                 ! ====================== !
       IF( kt == nit000 ) THEN                   !  First call kt=nit000  !
          !                                      ! ====================== !
          !
 #ifndef key_agrif
-write(*,*) 'numnam_ref= ',numnam_ref
          REWIND( numnam_ref )              ! Namelist namsbc_core in reference namelist : CORE bulk parameters
          READ  ( numnam_ref, namsbc_core, IOSTAT = ios, ERR = 901)
 901   CONTINUE
-write(*,*) 'after read ios 1=',ios
-
-write(*,*) 'cn_dir ,ios=',cn_dir,ios
-write(*,*) 'ln_taudif,ios=',ln_taudif,ios 
-write(*,*) 'rn_pfac,ios=', rn_pfac,ios
-write(*,*) 'rn_efac,ios=',rn_efac,ios
-write(*,*) 'rn_vfac,ios=',rn_vfac,ios
-write(*,*) 'sn_wndi,ios=', sn_wndi,ios
-write(*,*) 'sn_wndj,ios=', sn_wndj,ios
-write(*,*) 'sn_humi,ios=', sn_humi,ios
-write(*,*) 'sn_qsr, ios=', sn_qsr,ios
-write(*,*) 'sn_qlw, ios=', sn_qlw,ios
-write(*,*) 'sn_tair,ios=', sn_tair,ios
-write(*,*) 'sn_prec,ios=', sn_prec,ios
-write(*,*) 'sn_snow,ios=', sn_snow,ios     
-write(*,*) 'sn_tdif,ios=', sn_tdif,ios
-write(*,*) 'rn_zqt, ios=', rn_zqt, ios 
-write(*,*) 'rn_zu,  ios=',rn_zu, ios
-write(*,*) 'ln_totalprecip,ios=',ln_totalprecip,ios
-
 
       IF( ios /= 0 ) CALL ctl_nam ( ios , 'namsbc_core in reference namelist', lwp )
 !901      IF( ios /= 0 ) CALL ctl_nam ( ios , 'namsbc_core in reference namelist', lwp )
@@ -202,7 +181,6 @@ write(*,*) 'ln_totalprecip,ios=',ln_totalprecip,ios
 #endif
          REWIND( numnam_cfg )              ! Namelist namsbc_core in configuration namelist : CORE bulk parameters
          READ  ( numnam_cfg, namsbc_core, IOSTAT = ios, ERR = 902 )
-write(*,*) 'after read ios 2=',ios
 
  902 CONTINUE
       IF( ios /= 0 ) CALL ctl_nam ( ios , 'namsbc_core in configuration namelist', lwp )
@@ -264,7 +242,6 @@ write(*,*) 'after read ios 2=',ios
       ENDIF
 #endif
       !
-write(*,*) 'exit from sbc_blk_core'
 
    END SUBROUTINE sbc_blk_core
    
