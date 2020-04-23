@@ -165,9 +165,6 @@ CONTAINS
 #if defined key_agrif
           CALL Agrif_Regrid()
 #endif
-
-          WRITE(*,*) 'jpiglo,jpjglo',jpiglo,jpjglo
-          WRITE(*,*) 'narea,glamt(:,10),size(glamt(:,10))',narea,glamt(:,10),size(glamt(:,10))
           
           DO WHILE ( istp <= nitend .AND. nstop == 0 )
 #if defined key_agrif

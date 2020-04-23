@@ -63,7 +63,11 @@ MODULE lib_mpp
    USE lbcnfd         ! north fold treatment
    USE in_out_manager ! I/O manager
    USE wrk_nemo       ! work arrays
-
+#if defined key_USE_PDAF
+   USE mod_parallel_pdaf, ONLY: init_parallel_pdaf, ens_test_parallel,&
+        screen_parallel
+#endif
+   
    IMPLICIT NONE
    PRIVATE
    
@@ -307,6 +311,15 @@ CONTAINS
             CALL mpi_abort( mpi_comm_world, code, ierr )
          ENDIF
       ENDIF
+
+#if defined key_USE_PDAF
+!      IF( Agrif_Root() ) THEN             ! Only call init_parallel_pdaf once
+         screen_parallel=3                          ! PDAF output
+         ens_test_parallel=0                        ! PDAF ensemble size consistency
+                                                    ! check; not used.
+         CALL init_parallel_pdaf( ens_test_parallel, screen_parallel, mpi_comm_opa )
+!      ENDIF
+#endif
 
 #if defined key_agrif
       IF (Agrif_Root()) THEN
