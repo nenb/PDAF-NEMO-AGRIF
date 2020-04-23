@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 84
+/nemo/svn/!svn/ver/6304/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00
+END
+field_def.xml
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/field_def.xml
+END
+domain_def.xml
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/domain_def.xml
+END
+iodef.xml
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/iodef.xml
+END
+namelist_ref
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/namelist_ref
+END
+runscript
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/runscript
+END
+namelist_top_ref
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/namelist_top_ref
+END
+namelist_cfg
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/nemo/svn/!svn/ver/6304/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/namelist_cfg
+END
+namelist_top_cfg
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/nemo/svn/!svn/ver/5550/branches/2015/nemo_v3_6_STABLE/NEMOGCM/CONFIG/GYRE_BFM/EXP00/namelist_top_cfg
+END

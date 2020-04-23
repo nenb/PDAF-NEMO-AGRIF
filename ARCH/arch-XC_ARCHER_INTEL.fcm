@@ -32,30 +32,48 @@
 #
 %NCDF_HOME           $NETCDF_DIR
 %HDF5_HOME           $HDF5_DIR
-%XIOS_HOME           /work/n01/n01/acc/XIOS_r484
-#OASIS_HOME          
+%FFTW_HOME           /opt/cray/fftw/3.3.4.11/ivybridge
+%XIOS_HOME           /work/n02/n02/nenb/XIOS_2
+%PDAF_HOME           /work/n02/n02/nenb/NEMO_PDAFV115/PDAF
+
+#OASIS_HOME
 
 %NCDF_INC            -I%NCDF_HOME/include -I%HDF5_HOME/include
 %NCDF_LIB            -L%HDF5_HOME/lib -L%NCDF_HOME/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lz
+
 %XIOS_INC            -I%XIOS_HOME/inc 
 %XIOS_LIB            -L%XIOS_HOME/lib -lxios
+
+%FFTW_INC            -I%FFTW_HOME/include
+%FFTW_LIB            -L%FFTW_HOME/lib
+
+%PDAF_LIB            -L%PDAF_HOME/lib -lpdaf-d
+
 #OASIS_INC           -I%OASIS_HOME/build/lib/mct -I%OASIS_HOME/build/lib/psmile.MPI1
 #OASIS_LIB           -L%OASIS_HOME/lib -lpsmile.MPI1 -lmct -lmpeu -lscrip
 
 %CPP	             cpp
 %FC                  ftn
-%FCFLAGS             -integer-size 32 -real-size 64 -O3 -fp-model source -zero -fpp -warn all
-%FFLAGS              -integer-size 32 -real-size 64 -O3 -fp-model source -zero -fpp -warn all
+
+#Fortran flags for code production
+#%FCFLAGS             -integer-size 32 -real-size 64 -O2 -fpp -warn all -g
+#%FFLAGS              -integer-size 32 -real-size 64 -O1 -fpp -warn all -g
+
+# Fortran flags for debugging
+%FCFLAGS             -integer-size 32 -real-size 64 -O0 -fpp -warn all -g -Wall -fbacktrace -Wextra -Waliasing
+%FFLAGS              -integer-size 32 -real-size 64 -O0 -fpp -warn all -g -Wall -fbacktrace -Wextra -Waliasing
+
 %LD                  CC -Wl,"--allow-multiple-definition"
-%FPPFLAGS            -P -C -traditional
+%FPPFLAGS            -P -C -traditional 
 %LDFLAGS
 %AR                  ar 
 %ARFLAGS             -r
 %MK                  gmake
-%USER_INC            %XIOS_INC %NCDF_INC
-%USER_LIB            %XIOS_LIB %NCDF_LIB
-#USER_INC            %XIOS_INC %OASIS_INC %NCDF_INC
-#USER_LIB            %XIOS_LIB %OASIS_LIB %NCDF_LIB
+%USER_INC            %XIOS_INC %NCDF_INC 
+%USER_LIB            %XIOS_LIB %PDAF_LIB %NCDF_LIB 
+
+#USER_INC            %XIOS_INC %OASIS_INC %NCDF_INC %LINK_LIBS %FFTW_INC
+#USER_LIB            %XIOS_LIB %OASIS_LIB %NCDF_LIB %LINK_LIBS %FFTW_LIB
 
 %CC                  cc
 %CFLAGS              -O0
