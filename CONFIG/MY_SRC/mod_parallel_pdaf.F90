@@ -30,6 +30,8 @@ MODULE mod_parallel_pdaf
   INTEGER :: COMM_model  ! MPI communicator for model tasks
   INTEGER :: mype_model  ! Number of PEs in COMM_model
   INTEGER :: npes_model  ! PE rank in COMM_model
+  INTEGER :: COMM_ensemble      ! Communicator of all PEs doing model tasks
+  INTEGER :: mype_ens, npes_ens ! rank and size in COMM_ensemble
 
   ! Additional variables for use with PDAF
   INTEGER :: n_modeltasks = 1         ! Number of parallel model tasks
@@ -194,8 +196,6 @@ CONTAINS
 
 ! ! local variables
     INTEGER :: i, j               ! Counters
-    INTEGER :: COMM_ensemble      ! Communicator of all PEs doing model tasks
-    INTEGER :: mype_ens, npes_ens ! rank and size in COMM_ensemble
     INTEGER :: mype_couple, npes_couple ! Rank and size in COMM_couple
     INTEGER :: pe_index           ! Index of PE
     INTEGER :: my_color, color_couple ! Variables for communicator-splitting 

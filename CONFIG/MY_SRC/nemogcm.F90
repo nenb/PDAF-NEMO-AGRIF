@@ -84,6 +84,10 @@ MODULE nemogcm
    USE sbc_oce, ONLY: lk_oasis
    USE stopar
    USE stopts
+#if defined key_USE_PDAF
+   USE mod_parallel_pdaf, ONLY: filterpe    ! restrict screen output to member 1
+   USE mod_init_pdaf, ONLY: init_pdaf
+#endif 
    USE dom_oce
    USE par_oce
 
@@ -165,7 +169,11 @@ CONTAINS
 #if defined key_agrif
           CALL Agrif_Regrid()
 #endif
-          
+
+#if defined key_USE_PDAF
+          CALL init_pdaf()
+#endif
+
           DO WHILE ( istp <= nitend .AND. nstop == 0 )
 #if defined key_agrif
             CALL stp                         ! AGRIF: time stepping
@@ -316,8 +324,13 @@ numnam_ref=numnam_cfg	! set numnam_ref to numnam_cfg to provide the right unit f
 #endif
       narea = narea + 1                                     ! mynode return the rank of proc (0 --> jpnij -1 )
 
+#if defined key_USE_PDAF
+      lwm = ((narea == 1) .AND. filterpe)                   ! filterpe is true only for member 1
+      lwp = ((narea == 1) .AND. filterpe) .OR. (ln_ctl .AND. filterpe)
+#else
       lwm = (narea == 1)                                    ! control of output namelists
       lwp = (narea == 1) .OR. ln_ctl                        ! control of all listing output print
+#endif
 
       IF(lwm) THEN
          ! write merged namelists from earlier to output namelist now that the
