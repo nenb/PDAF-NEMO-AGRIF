@@ -32,7 +32,7 @@ CONTAINS
          ONLY: dim_state_p, screen, filtertype, subtype, &
          dim_ens, rms_obs, incremental, covartype, type_forget, &
          forget, rank_analysis_enkf, locweight, local_range, srange, &
-         filename, type_trans, type_sqrt, delt_obs
+         type_trans, type_sqrt, delt_obs
 
     IMPLICIT NONE
 
@@ -69,6 +69,10 @@ CONTAINS
     IF (mype_ens == 0) THEN
        WRITE (*,'(/1x,a)') 'INITIALIZE PDAF - ONLINE MODE'
     END IF
+
+    dim_state_p=1 ! TEMPORARY HARDCODE UNTIL STATEVECTOR MODULE FINISHED
+    ! *** Compute state dimension ***
+    !CALL calc_statevector_dim(dim_state_p) 
 
     ! **********************************************************
     ! ***   CONTROL OF PDAF - used in call to PDAF_init      ***
@@ -167,12 +171,12 @@ CONTAINS
        filter_param_i(5) = 0           ! Smoother lag (not implemented here)
        filter_param_r(1) = forget      ! Forgetting factor
 
-       !CALL PDAF_init(filtertype, subtype, 0, &
-       !     filter_param_i, 6,&
-       !     filter_param_r, 2, &
-       !     COMM_model, COMM_filter, COMM_couple, &
-       !     task_id, n_modeltasks, filterpe, init_ens_pdaf, &
-       !     screen, status_pdaf)
+       CALL PDAF_init(filtertype, subtype, 0, &
+            filter_param_i, 6,&
+            filter_param_r, 2, &
+            COMM_model, COMM_filter, COMM_couple, &
+            task_id, n_modeltasks, filterpe, init_ens_pdaf, &
+            screen, status_pdaf)
     ELSE
        ! *** All other filters                       ***
        ! *** SEIK, LSEIK, ETKF, LETKF, ESTKF, LESTKF ***
@@ -185,13 +189,12 @@ CONTAINS
        filter_param_i(7) = type_sqrt   ! Type of transform square-root (SEIK-sub4/ESTKF)
        filter_param_r(1) = forget      ! Forgetting factor  
 
-       status_pdaf=0
-       !CALL PDAF_init(filtertype, subtype, 0, &
-       !     filter_param_i, 7,&
-       !     filter_param_r, 2, &
-       !     COMM_model, COMM_filter, COMM_couple, &
-       !     task_id, n_modeltasks, filterpe, init_ens_pdaf, &
-       !     screen, status_pdaf)
+       CALL PDAF_init(filtertype, subtype, 0, &
+            filter_param_i, 7,&
+            filter_param_r, 2, &
+            COMM_model, COMM_filter, COMM_couple, &
+            task_id, n_modeltasks, filterpe, init_ens_pdaf, &
+            screen, status_pdaf)
     END IF whichinit
 
     ! *** Check whether initialization of PDAF was successful ***

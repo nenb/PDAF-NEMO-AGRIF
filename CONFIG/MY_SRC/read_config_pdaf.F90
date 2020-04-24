@@ -18,7 +18,8 @@ SUBROUTINE read_config_pdaf()
        ONLY: filtertype, subtype, dim_ens, delt_obs, screen,&
        incremental, type_forget, forget, local_range,&
        locweight, srange, rms_obs,type_trans,&
-       type_sqrt, covartype, rank_analysis_enkf
+       type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
+       istate_fname_u, istate_fname_v
 
   IMPLICIT NONE
 !EOP
@@ -29,7 +30,8 @@ SUBROUTINE read_config_pdaf()
   NAMELIST /pdaf_nml/ filtertype, subtype, dim_ens,& 
        delt_obs, screen,incremental, type_forget, forget,&
        local_range, locweight, srange, rms_obs,type_trans,&
-       type_sqrt, covartype, rank_analysis_enkf
+       type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
+       istate_fname_u, istate_fname_v
 
 ! ****************************************************
 ! ***   Initialize PDAF parameters from namelist   ***
@@ -40,7 +42,7 @@ SUBROUTINE read_config_pdaf()
 
   OPEN (20,file=nmlfile)
   READ (20,NML=pdaf_nml)
-  CLOSE (20)
+  CLOSE(20)
 
 ! *** Print configuration variables ***
   showconf: IF (mype_ens .EQ. 0) THEN
@@ -60,6 +62,9 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
     WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
     WRITE (*,'(5x,a,es10.2)') 'rms_obs_ssh  ', rms_obs
+    WRITE (*,'(5x,a,a)')  'istate_fname_t   ', istate_fname_t
+    WRITE (*,'(5x,a,a)')  'istate_fname_u   ', istate_fname_u
+    WRITE (*,'(5x,a,a)')  'istate_fname_v   ', istate_fname_v
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
   END IF showconf

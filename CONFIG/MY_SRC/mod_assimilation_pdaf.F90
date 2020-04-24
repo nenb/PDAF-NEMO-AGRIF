@@ -37,6 +37,7 @@ MODULE mod_assimilation
   REAL, ALLOCATABLE :: coords_obs_f(:,:)  ! Array for full observation coordinates
   INTEGER, ALLOCATABLE :: obs_index_l(:)  ! Vector holding local state-vector indices of observations
   REAL, ALLOCATABLE    :: distance_l(:)   ! Vector holding distances of local observations
+  REAL, ALLOCATABLE    :: wght(:)         ! Vector holding weights for ensemble initialization
 
 
 ! *** Below are the generic variables used for configuring PDAF ***
@@ -150,10 +151,9 @@ MODULE mod_assimilation
                     !   (0) symmetric square root, (1) Cholesky decomposition
 
 !    ! File input - available as namelist option
-  CHARACTER (len=110) :: istate_fname  ! file containing initial state estimate
-
-!    ! File output - available as a command line option
-  CHARACTER (len=90) :: filename  ! file name for assimilation output
+  CHARACTER (len=110) :: istate_fname_t  ! file containing t initial state estimate
+  CHARACTER (len=110) :: istate_fname_u  ! file containing u initial state estimate
+  CHARACTER (len=110) :: istate_fname_v  ! file containing v initial state estimate
 
 !    ! Other variables - _NOT_ available as command line options!
   INTEGER :: covartype     ! For SEIK: Definition of ensemble covar matrix
