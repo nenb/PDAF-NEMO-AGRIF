@@ -33,6 +33,7 @@ CONTAINS
          dim_ens, rms_obs, incremental, covartype, type_forget, &
          forget, rank_analysis_enkf, locweight, local_range, srange, &
          type_trans, type_sqrt, delt_obs
+    USE mod_statevector, ONLY: calc_statevector_dim
 
     IMPLICIT NONE
 
@@ -70,9 +71,8 @@ CONTAINS
        WRITE (*,'(/1x,a)') 'INITIALIZE PDAF - ONLINE MODE'
     END IF
 
-    dim_state_p=1 ! TEMPORARY HARDCODE UNTIL STATEVECTOR MODULE FINISHED
-    ! *** Compute state dimension ***
-    !CALL calc_statevector_dim(dim_state_p) 
+    ! Compute local state vector dimension
+    CALL calc_statevector_dim(dim_state_p)
 
     ! **********************************************************
     ! ***   CONTROL OF PDAF - used in call to PDAF_init      ***
@@ -148,7 +148,7 @@ CONTAINS
     CALL read_config_pdaf()
 
     ! *** Initial Screen output ***
-    IF (mype_ens == 0) call init_pdaf_info()
+    IF (mype_ens == 0) CALL init_pdaf_info()
 
     ! *****************************************************
     ! *** Call PDAF initialization routine on all PEs.  ***

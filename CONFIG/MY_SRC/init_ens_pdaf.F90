@@ -32,6 +32,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   USE mod_assimilation, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
        screen, wght
   USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
+  USE mod_statevector, ONLY: fill2d_ensarray, fill3d_ensarray
   USE par_oce, ONLY: jpiglo,jpjglo,jpk
 
   IMPLICIT NONE
@@ -81,11 +82,11 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 
   ! Compute weighting factor for ensemble perturbations
   DO i = 1, dim_ens
-     Wght(i)= (REAL(dim_ens) - dimens_mean - ABS(REAL(i) - 1.0 - dimens_mean))
+     wght(i)= (REAL(dim_ens) - dimens_mean - ABS(REAL(i) - 1.0 - dimens_mean))
   END DO
 
   IF(screen > 1 ) THEN
-     IF(mype_ens == 0) WRITE (*, *) 'Ensemble weights:', Wght(:)
+     IF(mype_ens == 0) WRITE (*, *) 'Ensemble weights:', wght(:)
   END IF
 
 
@@ -186,12 +187,14 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   ! *** Initialize ensemble array of state vectors  ***
   ! ***************************************************
 
-  WRITE (*,'(/1x,a)') '------- Reading Initial State -------------'
-  WRITE (*,'(/1x,a)') 'Calling 2dfill_ensarray'
-  WRITE (*,'(/1x,a)') 'Calling 3dfill_ensarray'
+  IF (mype_ens == 0) THEN
+     WRITE (*,'(/1x,a)') '------- Reading Initial State -------------'
+     WRITE (*,'(/1x,a)') 'Calling 2dfill_ensarray'
+     WRITE (*,'(/1x,a)') 'Calling 3dfill_ensarray'
+  END IF
 
-  !CALL fill2d_ensarray(dim_p, dim_ens, istate_ncfile(i), ens_p)
-  !CALL fill3d_ensarray(dim_p, dim_ens, ens_p)
+  CALL fill2d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
+  !CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
 
   DEALLOCATE(wght)
 
