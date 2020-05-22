@@ -66,8 +66,8 @@ CONTAINS
     ! Include halo regions in the state vector.
 
     ! !USES:
-    USE par_oce, ONLY: jpk, jpi, jpj
-    USE dom_oce, ONLY: nldi, nldj, nlei, nlej
+    USE par_oce, ONLY: jpk, jpi, jpj, jpiglo ,jpjglo
+    USE dom_oce, ONLY: nldi, nldj, nlei, nlej, nimpp, njmpp
 
     IMPLICIT NONE
 
@@ -80,6 +80,16 @@ CONTAINS
     mpi_subd_lon= jpi
     mpi_subd_lat= jpj
     mpi_subd_vert= jpk
+
+    ! Treat case where MPI subdomain goes outside limits of
+    ! global domain. In this case, MPI subdomain is likely
+    ! padded with zeros, which we now ignore.
+    IF (nimpp + jpi .GT. jpiglo+1) THEN
+       mpi_subd_lon = jpiglo+1-nimpp
+    END IF
+    IF (njmpp + jpj .GT. jpjglo+1) THEN
+       mpi_subd_lat = jpjglo+1-njmpp
+    END IF
 #endif
 
   END SUBROUTINE calc_mpi_dim
@@ -357,57 +367,8 @@ CONTAINS
        pos = (/ ii, jj, 1 /)
        cnt = (/ mpi_subd_lon , mpi_subd_lat, dim_ens /)
 
-! ********************************************************
-! Crude fix if MPI domain index greater than global domain
-! ********************************************************
-       IF (ii + mpi_subd_lon .GT. jpiglo+1) THEN
-          cnt(1) = jpiglo+1-ii
-       END IF
-       IF (jj + mpi_subd_lat .GT. jpjglo+1) THEN
-          cnt(2) = jpjglo+1-jj
-       END IF
-! ********************************************************
-! ********************************************************
-
        s = s + 1
        stat(s) = NF90_GET_VAR(ncid_in, id_2dvar, var2d, start=pos, count=cnt)
-
-! ********************************************************
-! Crude fix if MPI domain index greater than global domain
-! ********************************************************
-       ! First consider j dimension
-       IF (jj + mpi_subd_lat .GT. jpjglo+1) THEN
-          DO member = 1, dim_ens
-             DO j = cnt(2)+1, mpi_subd_lat
-                DO i = 1, cnt(1)
-                   var2d(i,j,member)=var2d(i,cnt(2),member)
-                END DO
-             END DO
-          END DO
-       END IF
-       ! Next consider i dimension
-       IF (ii + mpi_subd_lon .GT. jpiglo+1) THEN
-          DO member = 1, dim_ens
-             DO j = 1, cnt(2)
-                DO i = cnt(1)+1, mpi_subd_lon
-                   var2d(i,j,member)=var2d(cnt(1),j,member)
-                END DO
-             END DO
-          END DO
-       END IF
-       ! Now consider both dimensions
-       IF ((jj + mpi_subd_lat .GT. jpjglo+1) .AND. &
-            (ii + mpi_subd_lon .GT. jpiglo+1)) THEN
-          DO member = 1, dim_ens
-             DO j = cnt(2)+1, mpi_subd_lat
-                DO i = cnt(1)+1, mpi_subd_lon
-                   var2d(i,j,member)=var2d(cnt(1),cnt(2),member)
-                END DO
-             END DO
-          END DO
-       END IF
-! ********************************************************
-! ********************************************************
 
        ! Output snapshot frequency
        IF (mype_ens == 0) THEN
