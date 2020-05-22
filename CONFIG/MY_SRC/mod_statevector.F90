@@ -11,14 +11,12 @@ MODULE mod_statevector
 
 ! 2d state vector variables - start index
   INTEGER :: ssh_p_offset
-  INTEGER :: sst_p_offset
 
 ! Array holding 2d state variable offsets
-  INTEGER :: var2d_p_offset(2)
+  INTEGER :: var2d_p_offset(1)
 
 ! 2d state vector variables - dimension size
   INTEGER :: ssh_p_dim_state
-  INTEGER :: sst_p_dim_state
 
 ! 3d state vector variables - start index
   INTEGER :: t_p_offset
@@ -127,10 +125,8 @@ CONTAINS
        END DO
     END DO
     ssh_p_dim_state=cnt
-    sst_p_dim_state=cnt
 #else
     ssh_p_dim_state = mpi_subd_lat*mpi_subd_lon
-    sst_p_dim_state = mpi_subd_lat*mpi_subd_lon
 #endif
 
   END SUBROUTINE calc_2d_dim
@@ -231,11 +227,9 @@ CONTAINS
     CALL calc_2d_dim()
 
     ssh_p_offset = 0
-    sst_p_offset = ssh_p_offset + ssh_p_dim_state
 
     ! Fill array of state variable offsets for local processor element
     var2d_p_offset(1) = ssh_p_offset
-    var2d_p_offset(2) = sst_p_offset
 
   END SUBROUTINE calc_2d_offset
 
@@ -258,7 +252,6 @@ CONTAINS
     CALL calc_3d_dim()
 
     t_p_offset = ssh_p_offset + ssh_p_dim_state ! Continue from ssh field
-    ! as sst field is located at t(:,:,k=1)
     s_p_offset = t_p_offset + t_p_dim_state
     u_p_offset = s_p_offset + s_p_dim_state
     v_p_offset = u_p_offset + s_p_dim_state
@@ -515,6 +508,8 @@ CONTAINS
           sshb(i+i0,j+j0) = state_p(i+(j-1)*mpi_subd_lon + ssh_p_offset)
        END DO
     END DO
+
+    WRITE(*,*) 'Distributed'
 
     ! Fill halo regions
 #if defined PDAF_optim

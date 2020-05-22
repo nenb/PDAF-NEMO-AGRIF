@@ -210,8 +210,8 @@ CONTAINS
     ! *** Prepare ensemble forecasts ***
     ! ******************************'***
 
-    !CALL PDAF_get_state(steps, timenow, doexit, next_observation_pdaf, &
-    !     distribute_state_pdaf, prepoststep_ens_pdaf, status_pdaf)
+    CALL PDAF_get_state(steps, timenow, doexit, next_observation_pdaf, &
+         distribute_state_pdaf, prepoststep_ens_pdaf, status_pdaf)
 
   END SUBROUTINE init_pdaf
 
