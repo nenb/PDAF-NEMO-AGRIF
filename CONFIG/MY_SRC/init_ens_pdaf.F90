@@ -30,7 +30,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 
   USE netcdf
   USE mod_assimilation, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
-       screen, wght
+       istate_fname_w, screen, wght
   USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
   USE mod_statevector, ONLY: fill2d_ensarray, fill3d_ensarray
   USE par_oce, ONLY: jpiglo,jpjglo,jpk
@@ -50,12 +50,16 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 
   ! *** local variables ***
   REAL :: dimens_mean
-  INTEGER :: s, i, j                         ! Counters
+  INTEGER :: s, i, j, var                 ! Counters
   INTEGER :: stat(20000)                  ! Status flag for NetCDF commands
   INTEGER :: ncid_in                      ! ID for NetCDF file
   INTEGER :: id_dimx,id_dimy,id_dimz   ! IDs for dimensions
   INTEGER :: dim_lon, dim_lat, dim_vert ! Initial state dimensions
-  CHARACTER(len=100) :: istate_ncfile(3)     ! Files holding initial state estimate
+  CHARACTER(len=100) :: istate_ncfile(4)     ! Files holding initial state estimate
+  CHARACTER(len=20), DIMENSION(4) :: zdim_list ! z dimension labels for ic files
+
+  ! List of z dimension labels for initial state files
+  DATA zdim_list / 'deptht', 'depthu', 'depthv', 'depthw' /
 
 
   ! **********************************************************************************
@@ -99,30 +103,31 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   ! **********************************************************************************
 
   ! Files holding initial state estimate
-  istate_ncfile(1) = Trim(istate_fname_t)
-  istate_ncfile(2) = Trim(istate_fname_u)
-  istate_ncfile(3) = Trim(istate_fname_v)
+  istate_ncfile(1) = TRIM(istate_fname_t)
+  istate_ncfile(2) = TRIM(istate_fname_u)
+  istate_ncfile(3) = TRIM(istate_fname_v)
+  istate_ncfile(4) = TRIM(istate_fname_w)
 
   IF(screen > 1) THEN
      IF(mype_ens == 0) WRITE (*,'(/9x, a, 3x, a, 3x, a, 3x, a)')&
           "Initial state estimate files:", istate_ncfile(1),&
-          istate_ncfile(2), istate_ncfile(3)
+          istate_ncfile(2), istate_ncfile(3), istate_ncfile(4)
   END IF
 
   ! Check dimensions for each state variable file
-  file_dimcheck:DO i=1,3
+  file_dimcheck:DO var = 1, 4
 
      ! *******************************************
      ! *** Open file containing initial state ***
      ! *******************************************
      s = 1
-     stat(s) = NF90_OPEN(istate_ncfile(i) , NF90_NOWRITE, ncid_in)
+     stat(s) = NF90_OPEN(istate_ncfile(var) , NF90_NOWRITE, ncid_in)
 
      DO j = 1, s
         IF (stat(j) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in opening initial state file:',&
-                istate_ncfile(i)
+                istate_ncfile(var)
            CALL abort_parallel()
         END IF
      END DO
@@ -140,15 +145,15 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      s = s + 1
      stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat)
      s = s + 1
-     stat(s) = NF90_INQ_DIMID(ncid_in, 'deptht', id_dimz)
+     stat(s) = NF90_INQ_DIMID(ncid_in, TRIM(zdim_list(var)), id_dimz)
      s = s + 1
      stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimz, len=dim_vert)
 
      DO j = 1, s
-        IF (stat(i) .NE. NF90_NOERR) THEN
+        IF (stat(j) .NE. NF90_NOERR) THEN
            WRITE(*, '(/9x, a, 3x, i1, 3x, a, 3x, a)') &
                 'NetCDF error in reading dimension:', j,&
-                ' from initial state file:', istate_ncfile(i)
+                ' from initial state file:', istate_ncfile(var)
            CALL abort_parallel()
         END IF
      END DO
@@ -160,7 +165,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
              'Dimensions in initial state file valid.'
      ELSE
         WRITE (*,'(/9x, a, 3x, a, 3x, a)') 'ERROR: Initial state file:', &
-             istate_ncfile(i), 'has invalid dimensions.'
+             istate_ncfile(var), 'has invalid dimensions.'
         CALL abort_parallel()
      END IF
 
@@ -172,10 +177,10 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      stat(s) = NF90_CLOSE(ncid_in)
 
      DO j = 1, s
-        IF (stat(i) .NE. NF90_NOERR) THEN
+        IF (stat(j) .NE. NF90_NOERR) THEN
            WRITE(*,'(/9x, a, 3x, a)') &
                 'NetCDF error in closing initial state file:',&
-                istate_ncfile(i)
+                istate_ncfile(var)
            CALL abort_parallel()
         END IF
      END DO
@@ -194,7 +199,10 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   END IF
 
   CALL fill2d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
-  !CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
+  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), 'T', ens_p)
+  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(2), 'U', ens_p)
+  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)
+  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(4), 'W', ens_p)
 
   DEALLOCATE(wght)
 

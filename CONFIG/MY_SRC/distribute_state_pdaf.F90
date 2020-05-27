@@ -34,7 +34,7 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !
 ! !USES:
   USE mod_statevector, &
-       ONLY: distrib2d_statevector
+       ONLY: distrib2d_statevector, distrib3d_statevector
 
   IMPLICIT NONE
   
@@ -54,6 +54,6 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !********************************************
 
   CALL distrib2d_statevector(dim_p, state_p)
-  !CALL distrib3d_statevector(dim_p, state_p)
+  CALL distrib3d_statevector(dim_p, state_p)
 
 END SUBROUTINE distribute_state_pdaf

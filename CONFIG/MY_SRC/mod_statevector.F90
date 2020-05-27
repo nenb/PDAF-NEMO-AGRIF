@@ -44,12 +44,10 @@ MODULE mod_statevector
   CHARACTER(len=20), DIMENSION(1) :: id2d_list
   CHARACTER(len=20), DIMENSION(5) :: id3d_list
 
-! Fill array of 2d state variable .NC ids
+! Fill array of 2d/3d state variable .NC ids
   DATA id2d_list / 'sossheig' /
-
-! Fill array of 3d state variable .NC ids
-  DATA id3d_list / 'votemper', 'vosaline', 'vozocrtx', 'vomecrty', 'TBC' /
-
+  DATA id3d_list / 'votemper', 'vosaline', 'vozocrtx', &
+       'vomecrty', 'vovecrtz' /
 
 CONTAINS
 
@@ -103,7 +101,6 @@ CONTAINS
     ! Land points are included in the state vector.
 
     ! !USES:
-    USE par_oce, ONLY: jpiglo, jpjglo
     USE dom_oce, ONLY: ssmask, nldi, nldj
 
     IMPLICIT NONE
@@ -509,16 +506,14 @@ CONTAINS
        END DO
     END DO
 
-    WRITE(*,*) 'Distributed'
-
     ! Fill halo regions
 #if defined PDAF_optim
-    CALL lbc_lnk(sshb, 'T', 1)
+    CALL lbc_lnk(sshb, 'T', 1.)
 #endif
 
   END SUBROUTINE distrib2d_statevector
 
-  SUBROUTINE fill3d_ensarray(dim_p, dim_ens, wght, fname, ens_p)
+  SUBROUTINE fill3d_ensarray(dim_p, dim_ens, wght, fname, statevar, ens_p)
 
     ! !DESCRIPTION:
     ! Fill local ensemble array with 3d state variables from initial state file.
@@ -535,10 +530,12 @@ CONTAINS
     INTEGER, INTENT(in)   :: dim_ens                   ! Size of ensemble
     REAL, INTENT(in)   :: wght(dim_ens)             ! Weights for ensemble
     CHARACTER(len=*), INTENT(in) :: fname                     ! Name of NC file
+    CHARACTER(len=*), INTENT(in) :: statevar           ! Name of state variable
     REAL, INTENT(inout)   :: ens_p(dim_p, dim_ens)     ! PE-local state ensemble
 
     ! *** local variables ***
     INTEGER :: s, i, j, k, idx, member   ! Counters
+    INTEGER :: lwr_bnd, upr_bnd          ! Index limits for .NC id data
     INTEGER :: ii, jj                    ! Start index for NetCDF file
     INTEGER :: stat(20000)               ! Status flag for NetCDF commands
     INTEGER :: ncid_in                   ! ID for NetCDF file
@@ -548,6 +545,22 @@ CONTAINS
     REAL, ALLOCATABLE :: var3d_av(:,:,:) ! Ensemble average of var_2d array
     CHARACTER(len=100) :: intervalwrite  ! Frequency of snapshots from control
 
+
+    ! Determine what .NC ids are needed from id3d_list array
+    SELECT CASE ( statevar )
+    CASE ('T')
+       lwr_bnd = 1
+       upr_bnd = 2
+    CASE('U')
+       lwr_bnd = 3
+       upr_bnd = 3
+    CASE('V')
+       lwr_bnd = 4
+       upr_bnd = 4
+    CASE('W')
+       lwr_bnd = 5
+       upr_bnd = 5
+    END SELECT
 
     ! ******************************************
     ! *** Open file containing initial state ***
@@ -575,7 +588,7 @@ CONTAINS
     ALLOCATE (var3d_av(mpi_subd_lon, mpi_subd_lat, mpi_subd_vert))
 
     ! Loop over all state variables using state variable .NC id array
-    id3d: DO idx = 1, size(id3d_list)
+    id3d: DO idx = lwr_bnd, upr_bnd
        s=1
        stat(s) = NF90_INQ_VARID(ncid_in, trim(id3d_list(idx)), id_3dvar)
 #if defined PDAF_optim
@@ -629,10 +642,10 @@ CONTAINS
              DO j = 1, mpi_subd_lat
                 DO i = 1, mpi_subd_lon
                    IF (member == 1) THEN  ! Member 1 should not have any perturbation.
-                      ens_p(i + (j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat + &
+                      ens_p(i + (j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
                            var3d_p_offset(idx), member) = var3d(i,j,k,member)
                    ELSE
-                      ens_p(i + (j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat + &
+                      ens_p(i + (j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
                            var3d_p_offset(idx), member) = var3d_av(i,j,k) + &
                            wght(member) * ( var3d(i,j,k,member) - var3d_av(i,j,k) )
                    END IF
@@ -660,5 +673,179 @@ CONTAINS
     END DO
 
   END SUBROUTINE fill3d_ensarray
+
+  SUBROUTINE fill3d_statevector(dim_p, state_p)
+
+    ! !DESCRIPTION:
+    ! Fill state vector with 2d state variables.
+
+    ! !USES:
+    USE dom_oce, ONLY: nldi, nldj
+    USE oce, ONLY: tsb, ub, vb, wn
+    USE par_oce, ONLY: jp_tem, jp_sal
+
+    IMPLICIT NONE
+
+    ! !ARGUMENTS
+    INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
+    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+
+    ! *** local variables ***
+    INTEGER :: i, j, k     ! Counters
+    INTEGER :: i0, j0      ! Start index for MPI subdomain
+
+
+    ! Calculate offsets in case not already calculated
+    CALL calc_3d_offset()
+
+#if defined PDAF_optim
+    j0 = nldj - 1
+    i0 = nldi - 1
+#else
+    j0 = 0
+    i0 = 0
+#endif
+    ! Fill state vector with 3d variables
+    ! T
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
+                  t_p_offset) =  tsb(i+i0,j+j0,k,jp_tem)
+          END DO
+       END DO
+    END DO
+    ! S
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
+                  s_p_offset) = tsb(i+i0,j+j0,k,jp_sal)
+          END DO
+       END DO
+    END DO
+    ! U
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
+                  u_p_offset) = ub(i+i0,j+j0,k)
+          END DO
+       END DO
+    END DO
+    ! V
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
+                  v_p_offset) = vb(i+i0,j+j0,k)
+          END DO
+       END DO
+    END DO
+    ! W
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
+                  w_p_offset)  = wn(i+i0,j+j0,k)
+          END DO
+       END DO
+    END DO
+
+  END SUBROUTINE fill3d_statevector
+
+  SUBROUTINE distrib3d_statevector(dim_p, state_p)
+
+    ! !DESCRIPTION:
+    ! Distribute state vector 2d state variables.
+
+    ! !USES:
+    USE dom_oce, ONLY: nldi, nldj
+    USE oce, ONLY: tsb, ub, vb, wn
+    USE par_oce, ONLY: jp_tem, jp_sal
+
+    IMPLICIT NONE
+
+    ! !ARGUMENTS
+    INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
+    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+
+    ! *** local variables ***
+    INTEGER :: i, j, k     ! Counters
+    INTEGER :: i0, j0      ! Start index for MPI subdomain
+
+
+    ! Calculate offsets in case not already calculated
+    CALL calc_3d_offset()
+
+#if defined PDAF_optim
+    j0 = nldj - 1
+    i0 = nldi - 1
+#else
+    j0 = 0
+    i0 = 0
+#endif
+    ! Fill state vector with 3d variables
+    ! T
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             tsb(i+i0,j+j0,k,jp_tem) = &
+                  state_p(i+(j-1)*mpi_subd_lon + &
+                  (k-1)*mpi_subd_lat*mpi_subd_lon + t_p_offset)
+          END DO
+       END DO
+    END DO
+    ! S
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             tsb(i+i0,j+j0,k,jp_sal) = &
+                  state_p(i+(j-1)*mpi_subd_lon + &
+                  (k-1)*mpi_subd_lat*mpi_subd_lon + s_p_offset)
+          END DO
+       END DO
+    END DO
+    ! U
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             ub(i+i0,j+j0,k) = &
+                  state_p(i+(j-1)*mpi_subd_lon + &
+                  (k-1)*mpi_subd_lat*mpi_subd_lon + u_p_offset)
+          END DO
+       END DO
+    END DO
+    ! V
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             vb(i+i0,j+j0,k) = &
+                  state_p(i+(j-1)*mpi_subd_lon + &
+                  (k-1)*mpi_subd_lat*mpi_subd_lon + v_p_offset)
+          END DO
+       END DO
+    END DO
+    ! W
+    DO k = 1, mpi_subd_vert
+       DO j = 1, mpi_subd_lat
+          DO i = 1, mpi_subd_lon
+             wn(i+i0,j+j0,k) = &
+                  state_p(i+(j-1)*mpi_subd_lon + &
+                  (k-1)*mpi_subd_lat*mpi_subd_lon + w_p_offset)
+          END DO
+       END DO
+    END DO
+
+    ! Fill halo regions
+#if defined PDAF_optim
+    CALL lbc_lnk(tsb, 'T', 1.)
+    CALL lbc_lnk(tsb, 'T', 1.)
+    CALL lbc_lnk(ub, 'U', -1.)
+    CALL lbc_lnk(vb, 'V', -1.)
+    CALL lbc_lnk(wn, 'W', 1.)
+#endif
+
+  END SUBROUTINE distrib3d_statevector
 
 END MODULE mod_statevector

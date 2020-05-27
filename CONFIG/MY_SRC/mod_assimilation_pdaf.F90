@@ -154,6 +154,7 @@ MODULE mod_assimilation
   CHARACTER (len=110) :: istate_fname_t  ! file containing t initial state estimate
   CHARACTER (len=110) :: istate_fname_u  ! file containing u initial state estimate
   CHARACTER (len=110) :: istate_fname_v  ! file containing v initial state estimate
+  CHARACTER (len=110) :: istate_fname_w  ! file containing w initial state estimate
 
 !    ! Other variables - _NOT_ available as command line options!
   INTEGER :: covartype     ! For SEIK: Definition of ensemble covar matrix

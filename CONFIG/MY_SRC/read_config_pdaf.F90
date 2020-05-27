@@ -19,7 +19,7 @@ SUBROUTINE read_config_pdaf()
        incremental, type_forget, forget, local_range,&
        locweight, srange, rms_obs,type_trans,&
        type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
-       istate_fname_u, istate_fname_v
+       istate_fname_u, istate_fname_v, istate_fname_w
 
   IMPLICIT NONE
 !EOP
@@ -31,7 +31,7 @@ SUBROUTINE read_config_pdaf()
        delt_obs, screen,incremental, type_forget, forget,&
        local_range, locweight, srange, rms_obs,type_trans,&
        type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
-       istate_fname_u, istate_fname_v
+       istate_fname_u, istate_fname_v, istate_fname_w
 
 ! ****************************************************
 ! ***   Initialize PDAF parameters from namelist   ***
@@ -65,6 +65,7 @@ SUBROUTINE read_config_pdaf()
     WRITE (*,'(5x,a,a)')  'istate_fname_t   ', istate_fname_t
     WRITE (*,'(5x,a,a)')  'istate_fname_u   ', istate_fname_u
     WRITE (*,'(5x,a,a)')  'istate_fname_v   ', istate_fname_v
+    WRITE (*,'(5x,a,a)')  'istate_fname_w   ', istate_fname_w
     WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
   END IF showconf
