@@ -165,4 +165,7 @@ MODULE mod_assimilation
                            ! Only for upward-compatibility of PDAF!
   REAL    :: time          ! model time
 
+!    ! NEMO-AGRIF specific variables
+  LOGICAL :: euler_flag = .FALSE.  ! Flag for using euler timestep in NEMO after assimilation
+
 END MODULE mod_assimilation

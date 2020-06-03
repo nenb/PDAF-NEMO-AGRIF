@@ -32,6 +32,12 @@ MODULE step
    !!----------------------------------------------------------------------
    USE step_oce         ! time stepping definition modules
    USE iom
+#if defined key_USE_PDAF
+    USE mod_parallel_pdaf, &
+         ONLY: mype_ens
+   USE mod_assimilation, &
+        ONLY: delt_obs, euler_flag
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -83,7 +89,7 @@ CONTAINS
          IF ( Agrif_Root() .and. lwp) Write(*,*) '---'
          IF (lwp) Write(*,*) 'Grid Number',Agrif_Fixed(),' time step ',kstp, 'int tstep',Agrif_NbStepint()
       ENDIF
-
+n
       IF ( kstp == (nit000 + 1) ) lk_agrif_fstep = .FALSE.
 
 # if defined key_iomput
@@ -395,6 +401,19 @@ CONTAINS
       IF( nn_timing == 1 .AND.  kstp == nit000  )   CALL timing_reset
       !     
       !
+      ! Call PDAF library to check whether assimilation step
+#if defined key_USE_PDAF
+      CALL assimilate_pdaf()
+      ! If assimilation step performed, force Euler timestep for next step
+      IF ( (kstp .NE. nit000) .AND. MOD(kstp-nit000+1,delt_obs) == 0 ) THEN
+         euler_flag = .TRUE.
+         IF (mype_ens == 0) WRITE (*,'(/1x,a,10i)') &
+              'Euler timestep activated for step:', kstp+1
+      ELSE
+         euler_flag = .FALSE.
+      END IF
+#endif
+
    END SUBROUTINE stp
 
    !!======================================================================

@@ -48,6 +48,10 @@ MODULE tranxt
 #if defined key_agrif
    USE agrif_opa_interp
 #endif
+#if defined key_USE_PDAF
+   USE mod_assimilation, &
+        ONLY: euler_flag
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -136,6 +140,14 @@ CONTAINS
 #endif
  
       ! set time step size (Euler/Leapfrog)
+#if defined key_USE_PDAF
+      ! NOTE: This logic is likely incorrect if analysis step performed at t=1.
+      IF( euler_flag ) THEN
+         r2dtra(:) =  rdttra(:)                          ! = rdtra (restarting with Euler time stepping)
+      ELSE
+         r2dtra(:) = 2._wp * rdttra(:)                   ! = 2 rdttra (leapfrog)
+      ENDIF
+#endif
       IF( neuler == 0 .AND. kt == nit000 ) THEN   ;   r2dtra(:) =     rdttra(:)      ! at nit000             (Euler)
       ELSEIF( kt <= nit000 + 1 )           THEN   ;   r2dtra(:) = 2._wp* rdttra(:)      ! at nit000 or nit000+1 (Leapfrog)
       ENDIF
@@ -150,8 +162,11 @@ CONTAINS
             CALL trd_tra( kt, 'TRA', jp_sal, jptra_zdfp, ztrds )
          ENDIF
       ENDIF
-
+#if defined key_USE_PDAF
+      IF( (neuler == 0 .AND. kt == nit000) .OR. euler_flag ) THEN   ! Euler time-stepping at first time-step (only swap)
+#else
       IF( neuler == 0 .AND. kt == nit000 ) THEN       ! Euler time-stepping at first time-step (only swap)
+#endif
          DO jn = 1, jpts
             DO jk = 1, jpkm1
                tsn(:,:,jk,jn) = tsa(:,:,jk,jn)    
