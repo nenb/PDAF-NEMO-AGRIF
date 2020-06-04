@@ -23,17 +23,15 @@ MODULE mod_statevector
   INTEGER :: s_p_offset
   INTEGER :: u_p_offset
   INTEGER :: v_p_offset
-  INTEGER :: w_p_offset
 
 ! Array holding 3d state variable offsets
-  INTEGER :: var3d_p_offset(5)
+  INTEGER :: var3d_p_offset(4)
 
 ! 3d state vector variables - dimension size
   INTEGER :: t_p_dim_state
   INTEGER :: s_p_dim_state
   INTEGER :: u_p_dim_state
   INTEGER :: v_p_dim_state
-  INTEGER :: w_p_dim_state
 
 ! Dimensions for MPI subdomain
   INTEGER :: mpi_subd_lat
@@ -42,12 +40,11 @@ MODULE mod_statevector
 
   ! Array for 2d/3d state variable .NC ids
   CHARACTER(len=20), DIMENSION(1) :: id2d_list
-  CHARACTER(len=20), DIMENSION(5) :: id3d_list
+  CHARACTER(len=20), DIMENSION(4) :: id3d_list
 
 ! Fill array of 2d/3d state variable .NC ids
   DATA id2d_list / 'sossheig' /
-  DATA id3d_list / 'votemper', 'vosaline', 'vozocrtx', &
-       'vomecrty', 'vovecrtz' /
+  DATA id3d_list / 'votemper', 'vosaline', 'vozocrtx', 'vomecrty' /
 
 CONTAINS
 
@@ -187,24 +184,11 @@ CONTAINS
        END DO
     END DO
     v_p_dim_state=cnt
-
-    cnt=0
-    DO k = 1, mpi_subd_vert
-       DO j = 1, mpi_subd_lat
-          DO i = 1, mpi_subd_lon
-             IF (wmask(nldi+i-1,nldj+j-1,k) .EQ. 1) THEN
-                cnt=cnt+1
-             END IF
-          END DO
-       END DO
-    END DO
-    w_p_dim_state=cnt
 #else
     t_p_dim_state = mpi_subd_lat*mpi_subd_lon*mpi_subd_vert
     s_p_dim_state = mpi_subd_lat*mpi_subd_lon*mpi_subd_vert
     u_p_dim_state = mpi_subd_lat*mpi_subd_lon*mpi_subd_vert
     v_p_dim_state = mpi_subd_lat*mpi_subd_lon*mpi_subd_vert
-    w_p_dim_state = mpi_subd_lat*mpi_subd_lon*mpi_subd_vert
 #endif
 
   END SUBROUTINE calc_3d_dim
@@ -252,14 +236,12 @@ CONTAINS
     s_p_offset = t_p_offset + t_p_dim_state
     u_p_offset = s_p_offset + s_p_dim_state
     v_p_offset = u_p_offset + s_p_dim_state
-    w_p_offset = v_p_offset + v_p_dim_state
 
     ! Fill array of state variable offsets for local processor element
     var3d_p_offset(1) = t_p_offset
     var3d_p_offset(2) = s_p_offset
     var3d_p_offset(3) = u_p_offset
     var3d_p_offset(4) = v_p_offset
-    var3d_p_offset(5) = w_p_offset
 
   END SUBROUTINE calc_3d_offset
 
@@ -280,7 +262,7 @@ CONTAINS
     CALL calc_3d_dim()
 
     dim_p = ssh_p_dim_state + t_p_dim_state +&
-         s_p_dim_state + u_p_dim_state + v_p_dim_state + w_p_dim_state
+         s_p_dim_state + u_p_dim_state + v_p_dim_state
 
   END SUBROUTINE calc_statevector_dim
 
@@ -557,9 +539,6 @@ CONTAINS
     CASE('V')
        lwr_bnd = 4
        upr_bnd = 4
-    CASE('W')
-       lwr_bnd = 5
-       upr_bnd = 5
     END SELECT
 
     ! ******************************************
@@ -742,15 +721,6 @@ CONTAINS
           END DO
        END DO
     END DO
-    ! W
-    DO k = 1, mpi_subd_vert
-       DO j = 1, mpi_subd_lat
-          DO i = 1, mpi_subd_lon
-             state_p(i+(j-1)*mpi_subd_lon + (k-1)*mpi_subd_lat*mpi_subd_lon + &
-                  w_p_offset)  = wn(i+i0,j+j0,k)
-          END DO
-       END DO
-    END DO
 
   END SUBROUTINE fill3d_statevector
 
@@ -826,16 +796,6 @@ CONTAINS
           END DO
        END DO
     END DO
-    ! W
-    DO k = 1, mpi_subd_vert
-       DO j = 1, mpi_subd_lat
-          DO i = 1, mpi_subd_lon
-             wn(i+i0,j+j0,k) = &
-                  state_p(i+(j-1)*mpi_subd_lon + &
-                  (k-1)*mpi_subd_lat*mpi_subd_lon + w_p_offset)
-          END DO
-       END DO
-    END DO
 
     ! Fill halo regions
 #if defined PDAF_optim
@@ -843,7 +803,6 @@ CONTAINS
     CALL lbc_lnk(tsb, 'T', 1.)
     CALL lbc_lnk(ub, 'U', -1.)
     CALL lbc_lnk(vb, 'V', -1.)
-    CALL lbc_lnk(wn, 'W', 1.)
 #endif
 
   END SUBROUTINE distrib3d_statevector
