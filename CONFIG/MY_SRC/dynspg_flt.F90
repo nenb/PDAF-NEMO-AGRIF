@@ -140,6 +140,7 @@ CONTAINS
       IF( neuler == 0 .AND. kt == nit000+1 )   CALL sol_mat( kt )
 #if defined key_USE_PDAF
       IF( euler_flag )   z2dt = rdt
+      ! NOTE: Not sure if this is necessary, but including just in case.
       IF( (kt .NE. nit000+1) .AND. MOD(kt-nit000+2,delt_obs) == 0 ) CALL sol_mat( kt )
 #endif
       z2dtg  = grav * z2dt

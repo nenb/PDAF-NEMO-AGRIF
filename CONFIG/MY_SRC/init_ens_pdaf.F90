@@ -198,6 +198,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   END IF
 
   CALL fill2d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
+  ! 'T' also fills salinity ('S') ensemble.
   CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), 'T', ens_p)
   CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(2), 'U', ens_p)
   CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)

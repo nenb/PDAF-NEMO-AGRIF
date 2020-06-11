@@ -18,6 +18,9 @@ MODULE mod_statevector
 ! 2d state vector variables - dimension size
   INTEGER :: ssh_p_dim_state
 
+! 2d global state vector variables - dimension size
+  INTEGER :: ssh_dim_state
+
 ! 3d state vector variables - start index
   INTEGER :: t_p_offset
   INTEGER :: s_p_offset
@@ -32,6 +35,12 @@ MODULE mod_statevector
   INTEGER :: s_p_dim_state
   INTEGER :: u_p_dim_state
   INTEGER :: v_p_dim_state
+
+! 3d global state vector variables - dimension size
+  INTEGER :: t_dim_state
+  INTEGER :: s_dim_state
+  INTEGER :: u_dim_state
+  INTEGER :: v_dim_state
 
 ! Dimensions for MPI subdomain
   INTEGER :: mpi_subd_lat
@@ -51,39 +60,37 @@ CONTAINS
   SUBROUTINE calc_mpi_dim()
 
     ! !DESCRIPTION:
-    ! This routine calculates the dimensions of the subdomain of the MPI
-    ! domain that is used to fill the statevector. There are two options:
-    ! 1) PDAF_optim
-    ! Remove  halo regions from the state vector.
-    ! 2) *ELSE*
-    ! Include halo regions in the state vector.
+    ! This routine calculates the dimensions of the MPI subdomain
+    ! that is used to fill the statevector.
 
     ! !USES:
-    USE par_oce, ONLY: jpk, jpi, jpj, jpiglo ,jpjglo
+    USE mod_parallel_pdaf, ONLY: abort_parallel
+    USE par_oce, ONLY: jpk, jpiglo ,jpjglo
     USE dom_oce, ONLY: nldi, nldj, nlei, nlej, nimpp, njmpp
 
     IMPLICIT NONE
 
 
-#if defined PDAF_optim
     mpi_subd_lon = nlei-nldi+1
     mpi_subd_lat = nlej-nldj+1
     mpi_subd_vert = jpk
-#else
-    mpi_subd_lon= jpi
-    mpi_subd_lat= jpj
-    mpi_subd_vert= jpk
 
     ! Treat case where MPI subdomain goes outside limits of
     ! global domain. In this case, MPI subdomain is likely
-    ! padded with zeros, which we now ignore.
-    IF (nimpp + jpi .GT. jpiglo+1) THEN
-       mpi_subd_lon = jpiglo+1-nimpp
+    ! padded with zeros.
+    ! (Not sure if this is necessary, but included just in case.)
+    IF(nimpp + mpi_subd_lon - 1 .GT. jpiglo) THEN
+       WRITE(*,*) 'ERROR: MPI subdomain is padded with zeros along i&
+       &dim. Need to modify calc_mpi_dim routine in mod_statevector&
+       &to remove this zero padding.'
+       CALL abort_parallel()
     END IF
-    IF (njmpp + jpj .GT. jpjglo+1) THEN
-       mpi_subd_lat = jpjglo+1-njmpp
+    IF(njmpp + mpi_subd_lat - 1 .GT. jpjglo) THEN
+       WRITE(*,*) 'ERROR: MPI subdomain is padded with zeros along j&
+       &dim. Need to modify calc_mpi_dim routine in mod_statevector&
+       &to remove this zero padding.'
+       CALL abort_parallel()
     END IF
-#endif
 
   END SUBROUTINE calc_mpi_dim
 
@@ -136,7 +143,7 @@ CONTAINS
     ! Land points are included in the state vector.
 
     ! !USES:
-    USE dom_oce, ONLY: tmask, umask, vmask, wmask, nldi, nldj
+    USE dom_oce, ONLY: tmask, umask, vmask, nldi, nldj
 
     IMPLICIT NONE
 
@@ -235,7 +242,7 @@ CONTAINS
     t_p_offset = ssh_p_offset + ssh_p_dim_state ! Continue from ssh field
     s_p_offset = t_p_offset + t_p_dim_state
     u_p_offset = s_p_offset + s_p_dim_state
-    v_p_offset = u_p_offset + s_p_dim_state
+    v_p_offset = u_p_offset + u_p_dim_state
 
     ! Fill array of state variable offsets for local processor element
     var3d_p_offset(1) = t_p_offset
@@ -327,13 +334,10 @@ CONTAINS
     id2d: DO idx = 1, SIZE(id2d_list)
        s=1
        stat(s) = NF90_INQ_VARID(ncid_in, TRIM(id2d_list(idx)), id_2dvar)
-#if defined PDAF_optim
+
+       ! Set the starting position after the halo region
        jj = njmpp + nldj - 1
        ii = nimpp + nldi - 1
-#else
-       jj = njmpp
-       ii = nimpp
-#endif
 
        ! We increment the time index by member to get a new snapshot for each member.
        pos = (/ ii, jj, 1 /)
@@ -414,7 +418,7 @@ CONTAINS
     ! Fill state vector with 2d state variables.
 
     ! !USES:
-    USE dom_oce, ONLY: nldi, nldj
+    USE dom_oce, ONLY: nldi, nldj, nlei, nlej
     USE oce, ONLY: sshb
 
     IMPLICIT NONE
@@ -431,13 +435,9 @@ CONTAINS
     ! Calculate offsets in case not already calculated
     CALL calc_2d_offset()
 
-#if defined PDAF_optim
+! Set the starting position after the halo region
     j0 = nldj - 1
     i0 = nldi - 1
-#else
-    j0 = 0
-    i0 = 0
-#endif
 
     ! Fill state vector with 2d variables
     ! SSH
@@ -457,6 +457,7 @@ CONTAINS
     ! !USES:
     USE dom_oce, ONLY: nldi, nldj
     USE oce, ONLY: sshb
+    USE lbclnk
 
     IMPLICIT NONE
 
@@ -472,13 +473,9 @@ CONTAINS
     ! Calculate offsets in case not already calculated
     CALL calc_2d_offset()
 
-#if defined PDAF_optim
+    ! Set the starting position after the halo region
     j0 = nldj - 1
     i0 = nldi - 1
-#else
-    j0 = 0
-    i0 = 0
-#endif
 
     ! Fill state vector with 2d variables
     ! SSH
@@ -489,9 +486,7 @@ CONTAINS
     END DO
 
     ! Fill halo regions
-#if defined PDAF_optim
     CALL lbc_lnk(sshb, 'T', 1.)
-#endif
 
   END SUBROUTINE distrib2d_statevector
 
@@ -570,13 +565,11 @@ CONTAINS
     id3d: DO idx = lwr_bnd, upr_bnd
        s=1
        stat(s) = NF90_INQ_VARID(ncid_in, trim(id3d_list(idx)), id_3dvar)
-#if defined PDAF_optim
+
+       ! Set the starting position after the halo region
        jj = njmpp + nldj - 1
        ii = nimpp + nldi - 1
-#else
-       jj = njmpp
-       ii = nimpp
-#endif
+
        ! We increment the time index by member to get a new snapshot for each member.
        pos = (/ ii, jj, 1, 1 /)
        cnt = (/ mpi_subd_lon , mpi_subd_lat, mpi_subd_vert, dim_ens /)
@@ -660,7 +653,7 @@ CONTAINS
 
     ! !USES:
     USE dom_oce, ONLY: nldi, nldj
-    USE oce, ONLY: tsb, ub, vb, wn
+    USE oce, ONLY: tsb, ub, vb
     USE par_oce, ONLY: jp_tem, jp_sal
 
     IMPLICIT NONE
@@ -677,13 +670,10 @@ CONTAINS
     ! Calculate offsets in case not already calculated
     CALL calc_3d_offset()
 
-#if defined PDAF_optim
+    ! Set the starting position after the halo region
     j0 = nldj - 1
     i0 = nldi - 1
-#else
-    j0 = 0
-    i0 = 0
-#endif
+
     ! Fill state vector with 3d variables
     ! T
     DO k = 1, mpi_subd_vert
@@ -731,8 +721,9 @@ CONTAINS
 
     ! !USES:
     USE dom_oce, ONLY: nldi, nldj
-    USE oce, ONLY: tsb, ub, vb, wn
+    USE oce, ONLY: tsb, ub, vb
     USE par_oce, ONLY: jp_tem, jp_sal
+    USE lbclnk
 
     IMPLICIT NONE
 
@@ -748,13 +739,10 @@ CONTAINS
     ! Calculate offsets in case not already calculated
     CALL calc_3d_offset()
 
-#if defined PDAF_optim
+    ! Set the starting position after the halo region
     j0 = nldj - 1
     i0 = nldi - 1
-#else
-    j0 = 0
-    i0 = 0
-#endif
+
     ! Fill state vector with 3d variables
     ! T
     DO k = 1, mpi_subd_vert
@@ -798,12 +786,10 @@ CONTAINS
     END DO
 
     ! Fill halo regions
-#if defined PDAF_optim
-    CALL lbc_lnk(tsb, 'T', 1.)
-    CALL lbc_lnk(tsb, 'T', 1.)
+    CALL lbc_lnk(tsb(:,:,:,jp_tem), 'T', 1.)
+    CALL lbc_lnk(tsb(:,:,:,jp_sal), 'T', 1.)
     CALL lbc_lnk(ub, 'U', -1.)
     CALL lbc_lnk(vb, 'V', -1.)
-#endif
 
   END SUBROUTINE distrib3d_statevector
 
