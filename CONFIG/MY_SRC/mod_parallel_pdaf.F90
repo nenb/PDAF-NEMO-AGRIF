@@ -349,4 +349,150 @@ CONTAINS
 
   END SUBROUTINE init_parallel_pdaf
 
+  SUBROUTINE calc_global_dim(dim_local, dim_global)
+
+    ! !DESCRIPTION:
+    !  Computes the dimension of a state variable field for the global state vector.
+    
+    ! !USES:
+    IMPLICIT NONE
+
+    ! !ARGUMENTS:
+    INTEGER, INTENT(in)    :: dim_local  ! Local dimension of state variable
+    INTEGER, INTENT(inout) :: dim_global ! Global dimension of state variable
+
+    ! ! local variables
+    INTEGER :: domain                       ! Counters
+    INTEGER :: MPIerr                       ! MPI error status
+    INTEGER :: MPIstatus(MPI_STATUS_SIZE)   ! MPI status array
+    INTEGER, ALLOCATABLE :: dim_p_array(:)  ! Temporary array for local dimensions
+
+     IF (mype_filter /= 0) THEN
+        ! *** Send dim_p on filter-PEs with rank > 0 ***
+        CALL MPI_Send(dim_local, 1, MPI_INT, 0, 1, COMM_filter, MPIerr)
+     ELSE
+        ! Initialize array of dim_p values
+        ALLOCATE(dim_p_array(npes_filter))
+        dim_p_array(1) = dim_local
+        DO domain = 2, npes_filter
+           ! Receive dim_p on filter-PE with rank = 0
+           CALL MPI_Recv(dim_p_array(domain), 1, MPI_INT, MPI_ANY_SOURCE, 1, &
+                COMM_filter, MPIstatus, MPIerr)
+        END DO
+        dim_global = SUM(dim_p_array)
+        DEALLOCATE(dim_p_array)
+     END IF
+
+     ! Send dim_state from filter-PE with rank = 0 to all ranks.
+     CALL MPI_Bcast(dim_global, 1, MPI_INT, 0, COMM_filter, MPIerr)
+
+   END SUBROUTINE calc_global_dim
+
+   SUBROUTINE gather_ens(rank, dimx_local, dimy_local, dimz_local, dimx_global, &
+        dimy_global, dimz_global, dim_local, offset, dim_ens, ens_local, ens)
+
+!  !DESCRIPTION:
+!  Gathers local ensemble arrays on PE = rank, then assembles global
+!  ensemble array on PE = rank. This global ensemble is reshaped i.e.
+!  it is no longer in 1D statevector format, but rather in its output
+!  format of (x,y,member) or (x,y,z,member).
+
+     ! !USES:
+     IMPLICIT NONE
+
+     ! !ARGUMENTS:
+     INTEGER, INTENT(in) :: rank        ! Rank of PE to gather ens on
+     INTEGER, INTENT(in) :: dimx_local  ! Dimension of mpi domain: x axis
+     INTEGER, INTENT(in) :: dimy_local  ! Dimension of mpi domain: y axis
+     INTEGER, INTENT(in) :: dimz_local  ! Dimension of mpi domain: z axis
+     INTEGER, INTENT(in) :: dimx_global ! Dimension of global domain: x axis
+     INTEGER, INTENT(in) :: dimy_global ! Dimension of global domain: y axis
+     INTEGER, INTENT(in) :: dimz_global ! Dimension of global domain: z axis
+     INTEGER, INTENT(in) :: dim_local   ! Dimension of local statevector
+     INTEGER, INTENT(in) :: offset      ! State variable offset in local statevector
+     INTEGER, INTENT(in) :: dim_ens     ! Dimension of ensemble
+     REAL, INTENT(in)    :: ens_local(:,:) ! Local ensemble
+     REAL, INTENT(inout) :: ens(:,:,:,:)   ! Global ensemble (reshaped)
+
+     ! local variables
+     INTEGER :: domain, member, i, j, k      ! Counters
+     INTEGER :: MPIerr                       ! MPI error status
+     INTEGER :: MPIstatus(MPI_STATUS_SIZE)   ! MPI status array
+     INTEGER :: dimx_tmp                     ! Dimension of mpi domain: x axis
+     INTEGER :: dimy_tmp                     ! Dimension of mpi domain: x axis
+     INTEGER :: dimz_tmp                     ! Dimension of mpi domain: x axis
+     INTEGER :: offx                         ! Offset of local in global: x axis
+     INTEGER :: offy                         ! Offset of local in global: y axis
+     INTEGER :: dim_msg                      ! Size of MPI msg
+     REAL, ALLOCATABLE :: flat_ens_local(:)  ! Flattened ens_local array
+
+
+     mype: IF (mype_filter /= rank) THEN
+        ! Send arrays on filter-PEs /= rank to PE = rank.
+        ! Flatten arrays and also 'attach' local x/y/z dimensions as values
+        ! at the end of the flattened arrays (an ugly hack). These 'attached'
+        ! values are needed to reassemble the array on PE = rank.
+        ALLOCATE(flat_ens_local(dim_ens*dim_local + 3))
+        DO member = 1, dim_ens
+           DO i = 1, dim_local
+              flat_ens_local(i+dim_local*(member-1) ) = &
+                   ens_local(i+offset, member)
+           END DO
+        END DO
+        flat_ens_local(dim_ens*dim_local + 1) = REAL(dimx_local)
+        flat_ens_local(dim_ens*dim_local + 2) = REAL(dimy_local)
+        flat_ens_local(dim_ens*dim_local + 3) = REAL(dimz_local)
+        CALL MPI_Send(flat_ens_local(1), dim_ens*dim_local + 3, &
+             MPI_DOUBLE_PRECISION, rank, 1, COMM_filter, MPIerr)
+        DEALLOCATE(flat_ens_local)
+     ELSE mype ! Assemble each local ensemble in global ensemble array.
+        ! Offset for local ensemble in global ensemble.
+        offx=0
+        offy=0
+        DO domain = 1, npes_filter
+           ! No receive necessary on PE = rank (domain = rank+1)
+           IF (domain == rank+1) THEN
+              DO member = 1, dim_ens
+                 DO k = 1, dimz_local
+                    DO j = 1, dimy_local
+                       DO i = 1, dimx_local
+                          ens(i+offx,j+offy,k,member) = ens_local(offset+i+&
+                               (j-1)*dimx_local+(k-1)*dimx_local*dimy_local,member)
+                       END DO
+                    END DO
+                 END DO
+              END DO
+              ! Increment offset for local in global.
+              IF (offx+dimx_local >= dimx_global) offy=offy+dimy_local
+              offx=MOD(offx+dimx_local,dimx_global)
+           ELSE ! Receive all messages on PE = rank
+              CALL MPI_Probe(domain - 1, 1, COMM_filter, MPIstatus, MPIerr)
+              CALL MPI_Get_count(MPIstatus, MPI_DOUBLE_PRECISION, dim_msg, MPIerr)
+              ALLOCATE(flat_ens_local(dim_msg))
+              CALL MPI_Recv(flat_ens_local(1), dim_msg, MPI_DOUBLE_PRECISION, &
+                   domain - 1, 1, COMM_filter, MPIstatus, MPIerr)
+              dimx_tmp = INT(flat_ens_local(dim_msg-2))
+              dimy_tmp = INT(flat_ens_local(dim_msg-1))
+              dimz_tmp = INT(flat_ens_local(dim_msg))
+              DO member = 1, dim_ens
+                 DO k = 1, dimz_tmp
+                    DO j = 1, dimy_tmp
+                       DO i = 1, dimx_tmp
+                          ens(i+offx,j+offy,k,member) = flat_ens_local(i+ &
+                               (j-1)*dimx_tmp+(k-1)*dimx_tmp*dimy_tmp+ &
+                               (member-1)*dimx_tmp*dimy_tmp*dimz_tmp)
+                       END DO
+                    END DO
+                 END DO
+              END DO
+              DEALLOCATE(flat_ens_local)
+              ! Increment offset for local in global
+              IF (offx+dimx_tmp >= dimx_global) offy=offy+dimy_tmp
+              offx=MOD(offx+dimx_tmp,dimx_global)
+           END IF
+        END DO
+     END IF mype
+
+   END SUBROUTINE gather_ens
+
 END MODULE mod_parallel_pdaf

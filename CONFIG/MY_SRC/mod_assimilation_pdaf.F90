@@ -167,4 +167,14 @@ MODULE mod_assimilation
 !    ! NEMO-AGRIF specific variables
   LOGICAL :: euler_flag = .FALSE.  ! Flag for using euler timestep in NEMO after assimilation
 
+!    ! Time counter for netcdf output
+  INTEGER :: iter
+
+!    ! Control of output
+  LOGICAL :: output_ssh = .TRUE.
+  LOGICAL :: output_S   = .TRUE.
+  LOGICAL :: output_T   = .TRUE.
+  LOGICAL :: output_U   = .TRUE.
+  LOGICAL :: output_V   = .TRUE.
+
 END MODULE mod_assimilation
