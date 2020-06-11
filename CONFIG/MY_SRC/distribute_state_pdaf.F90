@@ -33,6 +33,7 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! Later revisions - see svn log
 !
 ! !USES:
+  USE kind_pdaf
   USE mod_statevector, &
        ONLY: distrib2d_statevector, distrib3d_statevector
 
@@ -40,7 +41,7 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
   
 ! !ARGUMENTS:
   INTEGER, INTENT(in) :: dim_p           ! PE-local state dimension
-  REAL, INTENT(inout) :: state_p(dim_p)  ! PE-local state vector
+  REAL(pwp), INTENT(inout) :: state_p(dim_p)  ! PE-local state vector
 
 ! !CALLING SEQUENCE:
 ! Called by: PDAF_get_state      (as U_dist_state)

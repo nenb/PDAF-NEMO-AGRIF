@@ -15,7 +15,7 @@ SUBROUTINE assimilate_pdaf()
 ! 2013-08 - Lars Nerger - Initial code for NEMO
 ! Later revisions - see svn log
 !
-! !USES:
+  ! !USES:
   USE mod_parallel_pdaf, &     ! Parallelization variables
        ONLY: mype_world, abort_parallel
   USE mod_assimilation, &      ! Variables for assimilation

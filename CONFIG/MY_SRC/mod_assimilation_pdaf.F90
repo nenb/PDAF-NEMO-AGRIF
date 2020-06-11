@@ -21,6 +21,7 @@ MODULE mod_assimilation
 ! Later revisions - see svn log
 !
 ! !USES:
+  USE kind_pdaf
   IMPLICIT NONE
   SAVE
 !EOP
@@ -31,13 +32,13 @@ MODULE mod_assimilation
   INTEGER :: dim_state_p         ! Model state dimension for PE-local domain
 
   INTEGER :: dim_obs_p                    ! Process-local number of observations
-  REAL, ALLOCATABLE    :: obs_p(:)        ! Vector holding process-local observations
+  REAL(pwp), ALLOCATABLE    :: obs_p(:)        ! Vector holding process-local observations
   INTEGER, ALLOCATABLE :: obs_index_p(:)  ! Vector holding state-vector indices of observations
-  REAL, ALLOCATABLE    :: obs_f(:)        ! Vector holding full vector of observations
-  REAL, ALLOCATABLE :: coords_obs_f(:,:)  ! Array for full observation coordinates
+  REAL(pwp), ALLOCATABLE    :: obs_f(:)        ! Vector holding full vector of observations
+  REAL(pwp), ALLOCATABLE :: coords_obs_f(:,:)  ! Array for full observation coordinates
   INTEGER, ALLOCATABLE :: obs_index_l(:)  ! Vector holding local state-vector indices of observations
-  REAL, ALLOCATABLE    :: distance_l(:)   ! Vector holding distances of local observations
-  REAL, ALLOCATABLE    :: wght(:)         ! Vector holding weights for ensemble initialization
+  REAL(pwp), ALLOCATABLE    :: distance_l(:)   ! Vector holding distances of local observations
+  REAL(pwp), ALLOCATABLE    :: wght(:)         ! Vector holding weights for ensemble initialization
 
 
 ! *** Below are the generic variables used for configuring PDAF ***
@@ -46,11 +47,11 @@ MODULE mod_assimilation
 ! !PUBLIC MEMBER FUNCTIONS:
 ! ! Settings for time stepping - available as command line options
   LOGICAL :: model_error   ! Control application of model error
-  REAL    :: model_err_amp ! Amplitude for model error
+  REAL(pwp)    :: model_err_amp ! Amplitude for model error
 
 ! ! Settings for observations - available as command line options
   INTEGER :: delt_obs      ! time step interval between assimilation steps
-  REAL    :: rms_obs       ! RMS error size for observation generation
+  REAL(pwp)    :: rms_obs       ! RMS error size for observation generation
   INTEGER :: dim_obs       ! Number of observations
 
 ! ! General control of PDAF - available as command line options
@@ -110,11 +111,11 @@ MODULE mod_assimilation
 ! ! Filter settings - available as command line options
 !    ! General
   INTEGER :: type_forget  ! Type of forgetting factor
-  REAL    :: forget       ! Forgetting factor for filter analysis
+  REAL(pwp)    :: forget       ! Forgetting factor for filter analysis
   INTEGER :: dim_bias     ! dimension of bias vector
 !    ! SEEK
   INTEGER :: int_rediag   ! Interval to perform re-diagonalization in SEEK
-  REAL    :: epsilon      ! Epsilon for gradient approx. in SEEK forecast
+  REAL(pwp)    :: epsilon      ! Epsilon for gradient approx. in SEEK forecast
 !    ! ENKF
   INTEGER :: rank_analysis_enkf  ! Rank to be considered for inversion of HPH
 !    ! SEIK/ETKF/ESTKF/LSEIK/LETKF/LESTKF
@@ -137,14 +138,14 @@ MODULE mod_assimilation
                            ! (0) use random orthonormal transformation orthogonal to (1,...,1)^T
                            ! (1) use identity transformation
 !    ! LSEIK/LETKF/LESTKF
-  REAL    :: local_range   ! Range for local observation domain
+  REAL(pwp)    :: local_range   ! Range for local observation domain
   INTEGER :: locweight     ! Type of localizing weighting of observations
                     !   (0) constant weight of 1
                     !   (1) exponentially decreasing with SRANGE
                     !   (2) use 5th-order polynomial
                     !   (3) regulated localization of R with mean error variance
                     !   (4) regulated localization of R with single-point error variance
-  REAL    :: srange        ! Support range for 5th order polynomial
+  REAL(pwp)    :: srange        ! Support range for 5th order polynomial
                            !   or radius for 1/e for exponential weighting
 !    ! SEIK-subtype4/LSEIK-subtype4/ESTKF/LESTKF
   INTEGER :: type_sqrt     ! Type of the transform matrix square-root 
@@ -162,7 +163,7 @@ MODULE mod_assimilation
                            ! This setting is only for the model part; The definition
                            ! of P has also to be specified in PDAF_filter_init.
                            ! Only for upward-compatibility of PDAF!
-  REAL    :: time          ! model time
+  REAL(pwp)    :: time          ! model time
 
 !    ! NEMO-AGRIF specific variables
   LOGICAL :: euler_flag = .FALSE.  ! Flag for using euler timestep in NEMO after assimilation

@@ -14,6 +14,7 @@ MODULE output_netcdf_asml
 ! Later revisions - see SVN log
 !
 ! !USES:
+  USE kind_pdaf
   USE mod_parallel_pdaf, &
        ONLY: abort_parallel
 
@@ -53,7 +54,7 @@ CONTAINS
 
 ! !ARGUMENTS:
     INTEGER, INTENT(IN) :: step       ! Initial time step
-    REAL, INTENT(IN)    :: dt         ! Size of time step
+    REAL(pwp), INTENT(IN)    :: dt         ! Size of time step
     INTEGER, INTENT(IN) :: dimx       ! Dimension: longitude
     INTEGER, INTENT(IN) :: dimy       ! Dimension: latitude
     INTEGER, INTENT(IN) :: dimz       ! Dimension: vertical
@@ -62,11 +63,11 @@ CONTAINS
     INTEGER, INTENT(IN) :: filtertype ! Type of filter
     INTEGER, INTENT(IN) :: subtype    ! Sub-type of filter
     INTEGER, INTENT(IN) :: dim_ens    ! ensemble_size
-    REAL, INTENT(IN)    :: forget     ! forgetting factor
-    REAL, INTENT(IN)    :: local_range  ! Localization radius
+    REAL(pwp), INTENT(IN)    :: forget     ! forgetting factor
+    REAL(pwp), INTENT(IN)    :: local_range  ! Localization radius
     INTEGER, INTENT(IN) :: locweight    ! Type of localization
-    REAL, INTENT(IN)    :: rms_obs      ! RMS error of observations
-    REAL, INTENT(IN)    :: srange       ! Support range for 5th order polynomial
+    REAL(pwp), INTENT(IN)    :: rms_obs      ! RMS error of observations
+    REAL(pwp), INTENT(IN)    :: srange       ! Support range for 5th order polynomial
                                         !   and range for 1/e for exponential weighting
     INTEGER, INTENT(IN) :: delt_obs     ! Number of time steps between two analysis steps
     INTEGER, INTENT(IN) :: total_steps  ! Total number of time steps in experiment
@@ -434,26 +435,26 @@ CONTAINS
     INTEGER, INTENT(IN) :: lev_tot     ! Total number of vertical levels to output
     CHARACTER(len=*), INTENT(IN) :: output_var  ! State variable to be written to file
     CHARACTER(len=2), INTENT(IN) :: output_dim  ! Dimension of state variable (2D/3D)
-    REAL, INTENT(IN)    :: rmse        ! Estimated RMS error
-    REAL, INTENT(IN)    :: trmse       ! True RMS error
-    REAL, INTENT(IN)    :: mrmse_null  ! Time-mean estimated RMS error from step 0
-    REAL, INTENT(IN)    :: mtrmse_null ! Time-mean true RMS error from step 0
-    REAL, INTENT(IN)    :: mrmse_step  ! Time-mean estimated RMS error from stepnull_means
-    REAL, INTENT(IN)    :: mtrmse_step ! Time-mean true RMS error from stepnull_means
+    REAL(pwp), INTENT(IN)    :: rmse        ! Estimated RMS error
+    REAL(pwp), INTENT(IN)    :: trmse       ! True RMS error
+    REAL(pwp), INTENT(IN)    :: mrmse_null  ! Time-mean estimated RMS error from step 0
+    REAL(pwp), INTENT(IN)    :: mtrmse_null ! Time-mean true RMS error from step 0
+    REAL(pwp), INTENT(IN)    :: mrmse_step  ! Time-mean estimated RMS error from stepnull_means
+    REAL(pwp), INTENT(IN)    :: mtrmse_step ! Time-mean true RMS error from stepnull_means
     INTEGER, INTENT(IN) :: dim_ens     ! Ensemble size
-    REAL, INTENT(IN)    :: ens(dimx, dimy, dimz, dim_ens) ! Ensemble
+    REAL(pwp), INTENT(IN)    :: ens(dimx, dimy, dimz, dim_ens) ! Ensemble
     INTEGER, INTENT(IN) :: hist_true(dim_ens+1, 2) ! Rank histogram about true state
     INTEGER, INTENT(IN) :: hist_mean(dim_ens+1, 2) ! Rank histogram about ensemble mean
-    REAL, INTENT(IN)    :: skewness                ! Skewness of ensemble
-    REAL, INTENT(IN)    :: kurtosis                ! Kurtosis of ensemble
+    REAL(pwp), INTENT(IN)    :: skewness                ! Skewness of ensemble
+    REAL(pwp), INTENT(IN)    :: kurtosis                ! Kurtosis of ensemble
     ! RMS errors for smoother
     INTEGER, INTENT(IN) :: dim_lag             ! Size of lag for smoothing
-    REAL, INTENT(IN) :: rmse_s(dim_lag)        ! Estimated RMS error
-    REAL, INTENT(IN) :: trmse_s(dim_lag)       ! True RMS error
-    REAL, INTENT(IN) :: mrmse_s_null(dim_lag)  ! Time-mean estimated RMS error from step 0
-    REAL, INTENT(IN) :: mtrmse_s_null(dim_lag) ! Time-mean true RMS error from step 0
-    REAL, INTENT(IN) :: mrmse_s_step(dim_lag)  ! Time-mean estimated RMS error from stepnull_means
-    REAL, INTENT(IN) :: mtrmse_s_step(dim_lag) ! Time-mean true RMS error from stepnull_means
+    REAL(pwp), INTENT(IN) :: rmse_s(dim_lag)        ! Estimated RMS error
+    REAL(pwp), INTENT(IN) :: trmse_s(dim_lag)       ! True RMS error
+    REAL(pwp), INTENT(IN) :: mrmse_s_null(dim_lag)  ! Time-mean estimated RMS error from step 0
+    REAL(pwp), INTENT(IN) :: mtrmse_s_null(dim_lag) ! Time-mean true RMS error from step 0
+    REAL(pwp), INTENT(IN) :: mrmse_s_step(dim_lag)  ! Time-mean estimated RMS error from stepnull_means
+    REAL(pwp), INTENT(IN) :: mtrmse_s_step(dim_lag) ! Time-mean true RMS error from stepnull_means
 !EOP
 
 ! Local variables
@@ -672,7 +673,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: dim_ens      ! Ensemble size
     INTEGER, INTENT(IN) :: dimx         ! Dimension: longitude
     INTEGER, INTENT(IN) :: dimy         ! Dimension: latitude
-    REAL, INTENT(IN)    :: ens(:,:,:,:) ! Ensemble
+    REAL(pwp), INTENT(IN)    :: ens(:,:,:,:) ! Ensemble
     INTEGER, INTENT(IN) :: iter         ! Iteration number
 
     ! Local variables
@@ -680,7 +681,7 @@ CONTAINS
     INTEGER :: stat(20)                       ! Array for status flag
     INTEGER :: pos4(4)                        ! Position index for writing
     INTEGER :: cnt4(4)                        ! Count index for writing
-    REAL, ALLOCATABLE :: tmp_array(:,:,:)     ! Array for 3D field select
+    REAL(pwp), ALLOCATABLE :: tmp_array(:,:,:)     ! Array for 3D field select
 
 
     ! Select 3D field from 4D array
@@ -732,7 +733,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: dimx         ! Dimension: longitude
     INTEGER, INTENT(IN) :: dimy         ! Dimension: latitude
     INTEGER, INTENT(IN) :: lev_num      ! Total number of levels to output
-    REAL, INTENT(IN)    :: ens(:,:,:,:) ! Ensemble
+    REAL(pwp), INTENT(IN)    :: ens(:,:,:,:) ! Ensemble
     INTEGER, INTENT(IN) :: iter         ! Iteration number
 
     ! Local variables
@@ -740,7 +741,7 @@ CONTAINS
     INTEGER :: stat(20)                         ! Array for status flag
     INTEGER :: pos5(5)                          ! Position index for writing
     INTEGER :: cnt5(5)                          ! Count index for writing
-    REAL, ALLOCATABLE :: tmp_array(:,:,:,:)     ! Array for 3D field select
+    REAL(pwp), ALLOCATABLE :: tmp_array(:,:,:,:)     ! Array for 3D field select
 
 
     ALLOCATE(tmp_array(dimx,dimy,lev_num,dim_ens))

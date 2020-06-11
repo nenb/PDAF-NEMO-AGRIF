@@ -25,6 +25,7 @@ CONTAINS
 ! Later revisions - see svn log
 !
 ! !USES:
+    USE kind_pdaf
     USE mod_parallel_pdaf, &
          ONLY: n_modeltasks, task_id, COMM_model, COMM_filter,&
          COMM_couple, COMM_ensemble, mype_ens, filterpe, abort_parallel
@@ -47,10 +48,10 @@ CONTAINS
 
 ! ! Local variables
     INTEGER :: filter_param_i(7) ! Integer parameter array for filter
-    REAL    :: filter_param_r(2) ! Real parameter array for filter
+    REAL(pwp)    :: filter_param_r(2) ! Real parameter array for filter
     INTEGER :: status_pdaf       ! PDAF status flag
     INTEGER :: doexit, steps     ! Not used in this implementation
-    REAL    :: timenow           ! Not used in this implementation
+    REAL(pwp)    :: timenow           ! Not used in this implementation
 
 ! External subroutines
     EXTERNAL :: init_ens_pdaf            ! Ensemble initialization

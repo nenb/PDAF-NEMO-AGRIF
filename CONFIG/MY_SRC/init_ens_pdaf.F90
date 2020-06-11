@@ -27,7 +27,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 ! Later revisions - see svn log
 !
 ! !USES:
-
+  USE kind_pdaf
   USE netcdf
   USE mod_assimilation, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
        screen, wght
@@ -41,15 +41,15 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   INTEGER, INTENT(in) :: filtertype              ! Type of filter to initialize
   INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
   INTEGER, INTENT(in) :: dim_ens                 ! Size of ensemble
-  REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+  REAL(pwp), INTENT(inout) :: state_p(dim_p)          ! PE-local model state
   ! It is not necessary to initialize the array 'state_p' for SEIK.
   ! It is available here only for convenience and can be used freely.
-  REAL, INTENT(inout) :: Uinv(dim_ens-1,dim_ens-1) ! Array not referenced for SEIK
-  REAL, INTENT(out)   :: ens_p(dim_p, dim_ens)   ! PE-local state ensemble
+  REAL(pwp), INTENT(inout) :: Uinv(dim_ens-1,dim_ens-1) ! Array not referenced for SEIK
+  REAL(pwp), INTENT(out)   :: ens_p(dim_p, dim_ens)   ! PE-local state ensemble
   INTEGER, INTENT(inout) :: flag                 ! PDAF status flag
 
   ! *** local variables ***
-  REAL :: dimens_mean
+  REAL(pwp) :: dimens_mean
   INTEGER :: s, i, j, var                 ! Counters
   INTEGER :: stat(20000)                  ! Status flag for NetCDF commands
   INTEGER :: ncid_in                      ! ID for NetCDF file

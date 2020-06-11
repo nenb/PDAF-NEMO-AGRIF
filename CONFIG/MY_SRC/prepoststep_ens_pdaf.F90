@@ -39,6 +39,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   ! Later revisions - see svn log
   !
   ! !USES:
+  USE kind_pdaf
   USE mod_assimilation, &
        ONLY: screen, filtertype, subtype, forget, local_range, &
        locweight, srange, rms_obs, delt_obs, dim_lag, iter, &
@@ -68,10 +69,10 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   INTEGER, INTENT(in) :: dim_ens     ! Size of state ensemble
   INTEGER, INTENT(in) :: dim_ens_p   ! PE-local size of ensemble
   INTEGER, INTENT(in) :: dim_obs_p   ! PE-local dimension of observation vector
-  REAL, INTENT(inout) :: state_p(dim_p) ! PE-local forecast/analysis state
+  REAL(pwp), INTENT(inout) :: state_p(dim_p) ! PE-local forecast/analysis state
   ! The array 'state_p' is initialised and can be used freely here (not for SEEK!)
-  REAL, INTENT(inout) :: Uinv(dim_ens-1, dim_ens-1) ! Inverse of matrix U
-  REAL, INTENT(inout) :: ens_p(dim_p, dim_ens)      ! PE-local state ensemble
+  REAL(pwp), INTENT(inout) :: Uinv(dim_ens-1, dim_ens-1) ! Inverse of matrix U
+  REAL(pwp), INTENT(inout) :: ens_p(dim_p, dim_ens)      ! PE-local state ensemble
   INTEGER, INTENT(in) :: flag        ! PDAF status flag
 
   ! !CALLING SEQUENCE:
@@ -91,41 +92,41 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   INTEGER :: rank_S                   ! PE rank for S write to file
   INTEGER :: rank_U                   ! PE rank for U write to file
   INTEGER :: rank_V                   ! PE rank for V write to file
-  REAL, ALLOCATABLE :: ens_ssh(:,:,:,:) ! Global state ensemble
-  REAL, ALLOCATABLE :: ens_T(:,:,:,:)   ! Global state ensemble
-  REAL, ALLOCATABLE :: ens_S(:,:,:,:)   ! Global state ensemble
-  REAL, ALLOCATABLE :: ens_U(:,:,:,:)   ! Global state ensemble
-  REAL, ALLOCATABLE :: ens_V(:,:,:,:)   ! Global state ensemble
+  REAL(pwp), ALLOCATABLE :: ens_ssh(:,:,:,:) ! Global state ensemble
+  REAL(pwp), ALLOCATABLE :: ens_T(:,:,:,:)   ! Global state ensemble
+  REAL(pwp), ALLOCATABLE :: ens_S(:,:,:,:)   ! Global state ensemble
+  REAL(pwp), ALLOCATABLE :: ens_U(:,:,:,:)   ! Global state ensemble
+  REAL(pwp), ALLOCATABLE :: ens_V(:,:,:,:)   ! Global state ensemble
 
   ! *** local variables for netcdf files - NOT CURRENTLY USED ***
-  REAL :: invdim_ens                   ! Inverse ensemble size
-  REAL :: invdim_ensm1                 ! Inverse of ensemble size minus 1
-  REAL :: rmse_est                     ! estimated RMS error
-  REAL :: rmse_true                    ! true RMS error
-  REAL, ALLOCATABLE :: variance_p(:)  ! local variance
+  REAL(pwp) :: invdim_ens                   ! Inverse ensemble size
+  REAL(pwp) :: invdim_ensm1                 ! Inverse of ensemble size minus 1
+  REAL(pwp) :: rmse_est                     ! estimated RMS error
+  REAL(pwp) :: rmse_true                    ! true RMS error
+  REAL(pwp), ALLOCATABLE :: variance_p(:)  ! local variance
   INTEGER, SAVE, ALLOCATABLE :: hist_true(:,:) ! Array for rank histogram about true state
   INTEGER, SAVE, ALLOCATABLE :: hist_mean(:,:) ! Array for rank histogram about ensemble mean
   ! Variables for mean errors from step 0
-  REAL, SAVE :: sum_rmse_est_null(2) = 0.0  ! RMS error estimate accumulated over time
-  REAL, SAVE :: sum_rmse_true_null(2) = 0.0 ! True RMS error accumulated over time
+  REAL(pwp), SAVE :: sum_rmse_est_null(2) = 0.0  ! RMS error estimate accumulated over time
+  REAL(pwp), SAVE :: sum_rmse_true_null(2) = 0.0 ! True RMS error accumulated over time
   INTEGER, SAVE :: nsum_null(2) = 0         ! Length of sums over time
-  REAL :: mrmse_est_null = 0.0              ! Time-mean of estimated RMS error
-  REAL :: mrmse_true_null = 0.0             ! Time-mean of true RMS error
+  REAL(pwp) :: mrmse_est_null = 0.0              ! Time-mean of estimated RMS error
+  REAL(pwp) :: mrmse_true_null = 0.0             ! Time-mean of true RMS error
   ! Variables for sum from step stepnull_means
-  REAL, SAVE :: sum_rmse_est_step(2) = 0.0  ! RMS error estimate accumulated over time
-  REAL, SAVE :: sum_rmse_true_step(2) = 0.0 ! True RMS error accumulated over time
+  REAL(pwp), SAVE :: sum_rmse_est_step(2) = 0.0  ! RMS error estimate accumulated over time
+  REAL(pwp), SAVE :: sum_rmse_true_step(2) = 0.0 ! True RMS error accumulated over time
   INTEGER, SAVE :: nsum_step(2) = 0         ! Length of sums over time
-  REAL :: mrmse_est_step = 0.0              ! Time-mean of estimated RMS error
-  REAL :: mrmse_true_step = 0.0             ! Time-mean of true RMS error
-  REAL :: skewness                          ! Skewness of ensemble
-  REAL :: kurtosis                          ! Kurtosis of ensemble
+  REAL(pwp) :: mrmse_est_step = 0.0              ! Time-mean of estimated RMS error
+  REAL(pwp) :: mrmse_true_step = 0.0             ! Time-mean of true RMS error
+  REAL(pwp) :: skewness                          ! Skewness of ensemble
+  REAL(pwp) :: kurtosis                          ! Kurtosis of ensemble
   ! Variables for smoother erros
-  REAL, Allocatable :: rmse_s(:)        ! estimated RMS error of smoothed states
-  REAL, ALLOCATABLE :: trmse_s(:)       ! true RMS error of smoothed states
-  REAL, ALLOCATABLE :: mrmse_s_null(:)  ! Time-mean of estimated smoother RMS error
-  REAL, ALLOCATABLE :: mtrmse_s_null(:) ! Time-mean of true smoother RMS error
-  REAL, ALLOCATABLE :: mrmse_s_step(:)  ! Time-mean of estimated smootherRMS error
-  REAL, ALLOCATABLE :: mtrmse_s_step(:) ! Time-mean of true smoother RMS error
+  REAL(pwp), Allocatable :: rmse_s(:)        ! estimated RMS error of smoothed states
+  REAL(pwp), ALLOCATABLE :: trmse_s(:)       ! true RMS error of smoothed states
+  REAL(pwp), ALLOCATABLE :: mrmse_s_null(:)  ! Time-mean of estimated smoother RMS error
+  REAL(pwp), ALLOCATABLE :: mtrmse_s_null(:) ! Time-mean of true smoother RMS error
+  REAL(pwp), ALLOCATABLE :: mrmse_s_step(:)  ! Time-mean of estimated smootherRMS error
+  REAL(pwp), ALLOCATABLE :: mtrmse_s_step(:) ! Time-mean of true smoother RMS error
 
 
   ! **********************

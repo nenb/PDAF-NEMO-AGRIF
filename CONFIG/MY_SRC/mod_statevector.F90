@@ -4,7 +4,9 @@ MODULE mod_statevector
 ! This module provides variables & routines for
 ! manipulating the state vector.
 
-! !USES:
+  ! !USES:
+  USE kind_pdaf
+
   IMPLICIT NONE
   SAVE
 
@@ -289,9 +291,9 @@ CONTAINS
     ! !ARGUMENTS
     INTEGER, INTENT(in)   :: dim_p                     ! PE-local state dimension
     INTEGER, INTENT(in)   :: dim_ens                   ! Size of ensemble
-    REAL, INTENT(in)   :: wght(dim_ens)             ! Weights for ensemble
+    REAL(pwp), INTENT(in)   :: wght(dim_ens)             ! Weights for ensemble
     CHARACTER(len=*), INTENT(in) :: fname                     ! Name of NC file
-    REAL, INTENT(inout)   :: ens_p(dim_p, dim_ens)     ! PE-local state ensemble
+    REAL(pwp), INTENT(inout)   :: ens_p(dim_p, dim_ens)     ! PE-local state ensemble
 
     ! *** local variables ***
     INTEGER :: s, i, j, idx, member     ! Counters
@@ -300,8 +302,8 @@ CONTAINS
     INTEGER :: ncid_in                  ! ID for NetCDF file
     INTEGER :: id_2dvar                 ! IDs for fields
     INTEGER :: pos(3),cnt(3)            ! Vectors for 2D reading fields
-    REAL, ALLOCATABLE :: var2d(:,:,:)   ! Array for reading state variables
-    REAL, ALLOCATABLE :: var2d_av(:,:)  ! Ensemble average of var_2d array
+    REAL(pwp), ALLOCATABLE :: var2d(:,:,:)   ! Array for reading state variables
+    REAL(pwp), ALLOCATABLE :: var2d_av(:,:)  ! Ensemble average of var_2d array
     CHARACTER(len=100) :: intervalwrite ! Frequency of snapshots from control
 
 
@@ -425,7 +427,7 @@ CONTAINS
 
     ! !ARGUMENTS
     INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
-    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+    REAL(pwp), INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
     ! *** local variables ***
     INTEGER :: i, j        ! Counters
@@ -463,7 +465,7 @@ CONTAINS
 
     ! !ARGUMENTS
     INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
-    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+    REAL(pwp), INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
     ! *** local variables ***
     INTEGER :: i, j        ! Counters
@@ -505,10 +507,10 @@ CONTAINS
     ! !ARGUMENTS
     INTEGER, INTENT(in)   :: dim_p                     ! PE-local state dimension
     INTEGER, INTENT(in)   :: dim_ens                   ! Size of ensemble
-    REAL, INTENT(in)   :: wght(dim_ens)             ! Weights for ensemble
+    REAL(pwp), INTENT(in)   :: wght(dim_ens)             ! Weights for ensemble
     CHARACTER(len=*), INTENT(in) :: fname                     ! Name of NC file
     CHARACTER(len=*), INTENT(in) :: statevar           ! Name of state variable
-    REAL, INTENT(inout)   :: ens_p(dim_p, dim_ens)     ! PE-local state ensemble
+    REAL(pwp), INTENT(inout)   :: ens_p(dim_p, dim_ens)     ! PE-local state ensemble
 
     ! *** local variables ***
     INTEGER :: s, i, j, k, idx, member   ! Counters
@@ -518,8 +520,8 @@ CONTAINS
     INTEGER :: ncid_in                   ! ID for NetCDF file
     INTEGER :: id_3dvar                  ! IDs for fields
     INTEGER :: pos(4),cnt(4)             ! Vectors for 2D reading fields
-    REAL, ALLOCATABLE :: var3d(:,:,:,:)  ! Array for reading state variables
-    REAL, ALLOCATABLE :: var3d_av(:,:,:) ! Ensemble average of var_2d array
+    REAL(pwp), ALLOCATABLE :: var3d(:,:,:,:)  ! Array for reading state variables
+    REAL(pwp), ALLOCATABLE :: var3d_av(:,:,:) ! Ensemble average of var_2d array
     CHARACTER(len=100) :: intervalwrite  ! Frequency of snapshots from control
 
 
@@ -660,7 +662,7 @@ CONTAINS
 
     ! !ARGUMENTS
     INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
-    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+    REAL(pwp), INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
     ! *** local variables ***
     INTEGER :: i, j, k     ! Counters
@@ -729,7 +731,7 @@ CONTAINS
 
     ! !ARGUMENTS
     INTEGER, INTENT(in) :: dim_p                   ! PE-local state dimension
-    REAL, INTENT(inout) :: state_p(dim_p)          ! PE-local model state
+    REAL(pwp), INTENT(inout) :: state_p(dim_p)          ! PE-local model state
 
     ! *** local variables ***
     INTEGER :: i, j, k     ! Counters

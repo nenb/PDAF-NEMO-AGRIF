@@ -20,6 +20,8 @@ MODULE mod_parallel_pdaf
 ! Later revisions - see svn log
 !
 ! !USES:
+  USE kind_pdaf
+
   IMPLICIT NONE
   SAVE 
 
@@ -411,8 +413,8 @@ CONTAINS
      INTEGER, INTENT(in) :: dim_local   ! Dimension of local statevector
      INTEGER, INTENT(in) :: offset      ! State variable offset in local statevector
      INTEGER, INTENT(in) :: dim_ens     ! Dimension of ensemble
-     REAL, INTENT(in)    :: ens_local(:,:) ! Local ensemble
-     REAL, INTENT(inout) :: ens(:,:,:,:)   ! Global ensemble (reshaped)
+     REAL(pwp), INTENT(in)    :: ens_local(:,:) ! Local ensemble
+     REAL(pwp), INTENT(inout) :: ens(:,:,:,:)   ! Global ensemble (reshaped)
 
      ! local variables
      INTEGER :: domain, member, i, j, k      ! Counters
@@ -424,7 +426,7 @@ CONTAINS
      INTEGER :: offx                         ! Offset of local in global: x axis
      INTEGER :: offy                         ! Offset of local in global: y axis
      INTEGER :: dim_msg                      ! Size of MPI msg
-     REAL, ALLOCATABLE :: flat_ens_local(:)  ! Flattened ens_local array
+     REAL(pwp), ALLOCATABLE :: flat_ens_local(:)  ! Flattened ens_local array
 
 
      mype: IF (mype_filter /= rank) THEN

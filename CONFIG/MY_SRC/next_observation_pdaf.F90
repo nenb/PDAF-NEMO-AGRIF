@@ -29,6 +29,7 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 ! Later revisions - see svn log
 !
 ! !USES:
+  USE kind_pdaf
   USE mod_assimilation, &
        ONLY: delt_obs
   USE mod_parallel_pdaf, &
@@ -42,7 +43,7 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
   INTEGER, INTENT(in)  :: stepnow  ! Number of the current time step
   INTEGER, INTENT(out) :: nsteps   ! Number of time steps until next obs
   INTEGER, INTENT(out) :: doexit   ! Whether to exit forecasting (1 for exit)
-  REAL, INTENT(out)    :: time     ! Current model (physical) time
+  REAL(pwp), INTENT(out)    :: time     ! Current model (physical) time
 
 ! !CALLING SEQUENCE:
 ! Called by: PDAF_get_state   (as U_next_obs)

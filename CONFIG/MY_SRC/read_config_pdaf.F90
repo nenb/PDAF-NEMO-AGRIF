@@ -11,7 +11,7 @@ SUBROUTINE read_config_pdaf()
 ! parameters controlling data assimilation with
 ! PDAF.
 
-! !USES:
+  ! !USES:
   USE mod_parallel_pdaf, &
        ONLY: mype_ens
   USE mod_assimilation, &

@@ -26,15 +26,16 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! 2013-09 - Lars Nerger - Initial code based on online implementation
 ! Later revisions - see svn log
 !
-  ! !USES:
-   USE mod_statevector, &
+! !USES:
+  USE kind_pdaf
+  USE mod_statevector, &
        ONLY: fill2d_statevector, fill3d_statevector
   
   IMPLICIT NONE
   
 ! !ARGUMENTS:
   INTEGER, INTENT(in) :: dim_p           ! PE-local state dimension
-  REAL, INTENT(inout) :: state_p(dim_p)  ! local state vector
+  REAL(pwp), INTENT(inout) :: state_p(dim_p)  ! local state vector
 
 ! !CALLING SEQUENCE:
 ! Called by: PDAF_put_state_X    (as U_coll_state)
