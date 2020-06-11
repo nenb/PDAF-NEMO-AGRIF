@@ -34,7 +34,7 @@ MODULE step
    USE iom
 #if defined key_USE_PDAF
     USE mod_parallel_pdaf, &
-         ONLY: mype_ens
+         ONLY: mype_ens, task_id
    USE mod_assimilation, &
         ONLY: delt_obs, euler_flag
 #endif
@@ -81,6 +81,10 @@ CONTAINS
       INTEGER ::   indic    ! error indicator if < 0
       INTEGER ::   kcall    ! optional integer argument (dom_vvl_sf_nxt)
       INTEGER :: time(8)    ! FUS: variable for time stamps to check scalability
+#if defined key_USE_PDAF
+      CHARACTER (len=3) :: ensstr  ! Identifier for ensemble member ouput
+      CHARACTER (len=40):: fname   ! Name of output file for each member
+#endif
       !! ---------------------------------------------------------------------
 
 #if defined key_agrif
@@ -378,7 +382,14 @@ n
                                CALL stp_ctl( kstp, indic )
       IF( indic < 0        )   THEN
                                CALL ctl_stop( 'step: indic < 0' )
+#if defined key_USE_PDAF
+                               ! Overwrite NEMO namelist for different members
+                               WRITE(ensstr,'(i3.3)') task_id
+                               WRITE(fname,'(a)') 'output_'//TRIM(ensstr)//'.abort'
+                               CALL dia_wri_state( fname, kstp )
+#else
                                CALL dia_wri_state( 'output.abort', kstp )
+#endif
       ENDIF
       IF( kstp == nit000   )   THEN
                  CALL iom_close( numror )     ! close input  ocean restart file

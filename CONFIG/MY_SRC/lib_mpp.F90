@@ -65,7 +65,7 @@ MODULE lib_mpp
    USE wrk_nemo       ! work arrays
 #if defined key_USE_PDAF
    USE mod_parallel_pdaf, ONLY: init_parallel_pdaf, ens_test_parallel,&
-        screen_parallel
+        screen_parallel, task_id
 #endif
    
    IMPLICIT NONE
@@ -197,6 +197,10 @@ CONTAINS
       !
       INTEGER ::   mynode, ierr, code, ji, ii, ios
       LOGICAL ::   mpi_was_called
+#if defined key_USE_PDAF
+      CHARACTER (len=3) :: ensstr  ! Identifier for ensemble member ouput
+      CHARACTER (len=40):: fname   ! Name of output file for each member
+#endif
       !
       NAMELIST/nammpp/ cn_mpi_send, nn_buffer, jpni, jpnj, jpnij, ln_nnogather
       !!----------------------------------------------------------------------
@@ -334,7 +338,14 @@ CONTAINS
       mynode = mpprank
 
       IF( mynode == 0 ) THEN
+#if defined key_USE_PDAF
+         ! Overwrite NEMO namelist for different members
+         WRITE(ensstr,'(i3.3)') task_id
+         WRITE(fname,'(a)') 'output_'//TRIM(ensstr)//'.namelist.dyn'
+         CALL ctl_opn( kumond, TRIM(fname), 'UNKNOWN', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. , 1 )
+#else
          CALL ctl_opn( kumond, TRIM(ldname), 'UNKNOWN', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. , 1 )
+#endif
          WRITE(kumond, nammpp)      
       ENDIF
       !

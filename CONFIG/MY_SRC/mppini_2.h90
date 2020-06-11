@@ -40,6 +40,9 @@
       !!----------------------------------------------------------------------
       USE in_out_manager  ! I/O Manager
       USE iom
+#if defined key_USE_PDAF
+      USE mod_parallel_pdaf, ONLY: task_id
+#endif 
       !! 
       INTEGER :: ji, jj, jn, jproc, jarea     ! dummy loop indices
       INTEGER ::  inum                        ! temporary logical unit
@@ -69,6 +72,10 @@
       REAL(wp), DIMENSION(jpiglo,jpjglo) ::   &
          zdta, zdtaisf                     ! temporary data workspace
       REAL(wp) ::   zidom , zjdom          ! temporary scalars
+#if defined key_USE_PDAF
+      CHARACTER (len=3) :: ensstr  ! Identifier for ensemble member ouput
+      CHARACTER (len=40):: fname   ! Name of output file for each member
+#endif
 
       ! read namelist for ln_zco
 !MMS:{ 
@@ -534,7 +541,15 @@
 
       ! Save processor layout in ascii file
       IF (lwp) THEN
+#if defined key_USE_PDAF
+         ! Overwrite NEMO namelist for different members
+         WRITE(ensstr,'(i3.3)') task_id
+         WRITE(fname,'(a)') 'layout_'//TRIM(ensstr)//'.dat'
+         CALL ctl_opn( inum, fname, 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, numout, .FALSE., narea )
+#else
+         ! Nodes selection (control print return in cltxt)
          CALL ctl_opn( inum, 'layout.dat', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, numout, .FALSE., narea )
+#endif
          WRITE(inum,'(a)') '   jpnij     jpi     jpj     jpk  jpiglo  jpjglo'
          WRITE(inum,'(6i8)') jpnij,jpi,jpj,jpk,jpiglo,jpjglo
          WRITE(inum,'(a)') 'NAREA nlci nlcj nldi nldj nlei nlej nimpp njmpp'

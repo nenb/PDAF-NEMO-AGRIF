@@ -37,6 +37,9 @@ MODULE domain
    USE dyncor_c1d      ! Coriolis term (c1d case)         (cor_c1d routine)
    USE timing          ! Timing
    USE lbclnk          ! ocean lateral boundary condition (or mpp link)
+#if defined key_USE_PDAF
+      use mod_parallel_pdaf, only: task_id
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -159,6 +162,9 @@ CONTAINS
       NAMELIST/namnc4/ nn_nchunks_i, nn_nchunks_j, nn_nchunks_k, ln_nc4zip
 #endif
       INTEGER  ::   ios                 ! Local integer output status for namelist read
+#if defined key_USE_PDAF
+      CHARACTER (len=3) :: ensstr  ! Identifier for ensemble member ouput
+#endif
       !!----------------------------------------------------------------------
 
       REWIND( numnam_ref )              ! Namelist namrun in reference namelist : Parameters of the run
@@ -168,6 +174,15 @@ CONTAINS
       REWIND( numnam_cfg )              ! Namelist namrun in configuration namelist : Parameters of the run
       READ  ( numnam_cfg, namrun, IOSTAT = ios, ERR = 902 )
 902   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namrun in configuration namelist', lwp )
+#if defined key_USE_PDAF
+      ! Overwrite NEMO namelist for different members
+      WRITE(ensstr,'(i3.3)') task_id
+      WRITE(cn_exp,'(a)') TRIM(cn_exp)//'_'//TRIM(ensstr)
+      WRITE(cn_ocerst_in,'(a)') TRIM(cn_ocerst_in)//'_'//TRIM(ensstr)
+      WRITE(cn_ocerst_indir,'(a)') TRIM(cn_ocerst_in)//'_'//TRIM(ensstr)
+      WRITE(cn_ocerst_out,'(a)') TRIM(cn_ocerst_out)//'_'//TRIM(ensstr)
+      WRITE(cn_ocerst_outdir,'(a)') TRIM(cn_ocerst_outdir)//'_'//TRIM(ensstr)
+#endif
       IF(lwm) WRITE ( numond, namrun )
       !
       IF(lwp) THEN                  ! control print

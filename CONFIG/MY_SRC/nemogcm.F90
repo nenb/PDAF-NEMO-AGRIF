@@ -85,7 +85,7 @@ MODULE nemogcm
    USE stopar
    USE stopts
 #if defined key_USE_PDAF
-   USE mod_parallel_pdaf, ONLY: filterpe    ! restrict screen output to member 1
+   USE mod_parallel_pdaf, ONLY: filterpe, task_id
    USE mod_init_pdaf, ONLY: init_pdaf
 #endif 
    USE dom_oce
@@ -238,6 +238,10 @@ CONTAINS
       INTEGER ::   ilocal_comm   ! local integer
       INTEGER ::   ios
       CHARACTER(len=80), DIMENSION(16) ::   cltxt
+#if defined key_USE_PDAF
+      CHARACTER (len=3) :: ensstr  ! Identifier for ensemble member ouput
+      CHARACTER (len=40):: fname   ! Name of output file for each member
+#endif
       !
       NAMELIST/namctl/ ln_ctl  , nn_print, nn_ictls, nn_ictle,   &
          &             nn_isplt, nn_jsplt, nn_jctls, nn_jctle,   &
@@ -324,13 +328,8 @@ numnam_ref=numnam_cfg	! set numnam_ref to numnam_cfg to provide the right unit f
 #endif
       narea = narea + 1                                     ! mynode return the rank of proc (0 --> jpnij -1 )
 
-#if defined key_USE_PDAF
-      lwm = ((narea == 1) .AND. filterpe)                   ! filterpe is true only for member 1
-      lwp = ((narea == 1) .AND. filterpe) .OR. (ln_ctl .AND. filterpe)
-#else
       lwm = (narea == 1)                                    ! control of output namelists
       lwp = (narea == 1) .OR. ln_ctl                        ! control of all listing output print
-#endif
 
       IF(lwm) THEN
          ! write merged namelists from earlier to output namelist now that the
@@ -388,7 +387,14 @@ numnam_ref=numnam_cfg	! set numnam_ref to numnam_cfg to provide the right unit f
 
       IF(lwp) THEN                            ! open listing units
          !
+#if defined key_USE_PDAF
+         ! Overwrite NEMO namelist for different members
+         WRITE(ensstr,'(i3.3)') task_id
+         WRITE(fname,'(a)') 'ocean_'//TRIM(ensstr)//'.output'
+         CALL ctl_opn( numout, fname, 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE., narea )
+#else
          CALL ctl_opn( numout, 'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE., narea )
+#endif
          !
          WRITE(numout,*)
          WRITE(numout,*) '   CNRS - NERC - Met OFFICE - MERCATOR-ocean - INGV - CMCC'
