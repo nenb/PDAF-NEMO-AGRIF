@@ -93,7 +93,7 @@ CONTAINS
          IF ( Agrif_Root() .and. lwp) Write(*,*) '---'
          IF (lwp) Write(*,*) 'Grid Number',Agrif_Fixed(),' time step ',kstp, 'int tstep',Agrif_NbStepint()
       ENDIF
-n
+
       IF ( kstp == (nit000 + 1) ) lk_agrif_fstep = .FALSE.
 
 # if defined key_iomput
