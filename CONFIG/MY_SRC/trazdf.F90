@@ -31,7 +31,7 @@ MODULE trazdf
    USE wrk_nemo        ! Memory allocation
    USE timing          ! Timing
 #if defined key_USE_PDAF
-   USE mod_assimilation, &
+   USE mod_assimilation_pdaf, &
         ONLY: euler_flag
 #endif
 

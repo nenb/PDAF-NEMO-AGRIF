@@ -33,8 +33,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE kind_pdaf
-  USE mod_statevector, &
+  USE mod_kind_pdaf
+  USE mod_statevector_pdaf, &
        ONLY: distrib2d_statevector, distrib3d_statevector
 
   IMPLICIT NONE

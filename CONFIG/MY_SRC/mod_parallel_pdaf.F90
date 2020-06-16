@@ -20,7 +20,7 @@ MODULE mod_parallel_pdaf
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE kind_pdaf
+  USE mod_kind_pdaf
 
   IMPLICIT NONE
   SAVE 

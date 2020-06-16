@@ -35,7 +35,7 @@ MODULE traadv
    USE sbc_oce
    USE diaptr          ! Poleward heat transport 
 #if defined key_USE_PDAF
-   USE mod_assimilation, &
+   USE mod_assimilation_pdaf, &
         ONLY: euler_flag
 #endif
 

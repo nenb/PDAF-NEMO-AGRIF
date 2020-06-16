@@ -32,7 +32,7 @@ MODULE solmat
    USE in_out_manager  ! I/O manager
    USE timing          ! timing
 #if defined key_USE_PDAF
-   USE mod_assimilation, &
+   USE mod_assimilation_pdaf, &
         ONLY: euler_flag
 #endif
 

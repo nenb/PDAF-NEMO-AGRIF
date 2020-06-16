@@ -27,8 +27,8 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE kind_pdaf
-  USE mod_statevector, &
+  USE mod_kind_pdaf
+  USE mod_statevector_pdaf, &
        ONLY: fill2d_statevector, fill3d_statevector
   
   IMPLICIT NONE

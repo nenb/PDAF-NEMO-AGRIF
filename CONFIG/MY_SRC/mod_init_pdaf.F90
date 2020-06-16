@@ -25,16 +25,17 @@ CONTAINS
 ! Later revisions - see svn log
 !
 ! !USES:
-    USE kind_pdaf
+    USE mod_kind_pdaf
     USE mod_parallel_pdaf, &
          ONLY: n_modeltasks, task_id, COMM_model, COMM_filter,&
          COMM_couple, COMM_ensemble, mype_ens, filterpe, abort_parallel
-    USE mod_assimilation, &
+    USE mod_assimilation_pdaf, &
          ONLY: dim_state_p, screen, filtertype, subtype, &
          dim_ens, rms_obs, incremental, covartype, type_forget, &
          forget, rank_analysis_enkf, locweight, local_range, srange, &
          type_trans, type_sqrt, delt_obs
-    USE mod_statevector, ONLY: calc_statevector_dim
+    USE mod_statevector_pdaf, ONLY: calc_statevector_dim
+    USE mod_util_pdaf, ONLY: init_info_pdaf, read_config_pdaf
 
     IMPLICIT NONE
 
@@ -60,8 +61,6 @@ CONTAINS
          distribute_state_pdaf, &        ! Routine to distribute a state vector
                                          ! to model fields
          prepoststep_ens_pdaf            ! User supplied pre/poststep routine
-    EXTERNAL :: read_config_pdaf, &      ! Read PDAF namelist
-         init_pdaf_info                  ! Output PDAF initialization information
 
 
     ! ***************************
@@ -149,7 +148,7 @@ CONTAINS
     CALL read_config_pdaf()
 
     ! *** Initial Screen output ***
-    IF (mype_ens == 0) CALL init_pdaf_info()
+    IF (mype_ens == 0) CALL init_info_pdaf()
 
     ! *****************************************************
     ! *** Call PDAF initialization routine on all PEs.  ***

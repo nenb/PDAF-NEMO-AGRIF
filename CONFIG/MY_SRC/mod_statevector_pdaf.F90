@@ -1,11 +1,11 @@
-MODULE mod_statevector
+MODULE mod_statevector_pdaf
 
 ! !DESCRIPTION:
 ! This module provides variables & routines for
 ! manipulating the state vector.
 
   ! !USES:
-  USE kind_pdaf
+  USE mod_kind_pdaf
 
   IMPLICIT NONE
   SAVE
@@ -281,8 +281,8 @@ CONTAINS
     ! Fill local ensemble array with 2d state variables from initial state file.
 
     ! !USES:
-    USE netcdf
     USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
+    USE netcdf
     USE dom_oce, ONLY: nldi, nldj, nimpp, njmpp
     USE par_oce, ONLY: jpiglo,jpjglo
 
@@ -498,8 +498,8 @@ CONTAINS
     ! Fill local ensemble array with 3d state variables from initial state file.
 
     ! !USES:
-    USE netcdf
     USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
+    USE netcdf
     USE dom_oce, ONLY: nldi, nldj, nimpp, njmpp
 
     IMPLICIT NONE
@@ -795,4 +795,4 @@ CONTAINS
 
   END SUBROUTINE distrib3d_statevector
 
-END MODULE mod_statevector
+END MODULE mod_statevector_pdaf

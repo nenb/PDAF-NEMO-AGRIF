@@ -1,4 +1,4 @@
-MODULE kind_pdaf
+MODULE mod_kind_pdaf
 
 !  !DESCRIPTION:
 !  This module defines the kind of real for PDAF interface/call-back
@@ -11,4 +11,4 @@ MODULE kind_pdaf
    INTEGER, PUBLIC, PARAMETER :: pdp = SELECTED_REAL_KIND(12,307) !: double precision (real 8)
    INTEGER, PUBLIC, PARAMETER :: pwp = pdp                        !: working precision
 
-END MODULE kind_pdaf
+END MODULE mod_kind_pdaf

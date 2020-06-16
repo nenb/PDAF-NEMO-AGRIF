@@ -27,12 +27,12 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE kind_pdaf
-  USE netcdf
-  USE mod_assimilation, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
+  USE mod_kind_pdaf
+  USE mod_assimilation_pdaf, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
        screen, wght
   USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
-  USE mod_statevector, ONLY: fill2d_ensarray, fill3d_ensarray
+  USE mod_statevector_pdaf, ONLY: fill2d_ensarray, fill3d_ensarray
+  USE netcdf
   USE par_oce, ONLY: jpiglo,jpjglo,jpk
 
   IMPLICIT NONE

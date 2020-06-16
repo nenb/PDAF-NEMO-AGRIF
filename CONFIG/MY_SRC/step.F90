@@ -35,8 +35,8 @@ MODULE step
 #if defined key_USE_PDAF
     USE mod_parallel_pdaf, &
          ONLY: mype_ens, task_id
-   USE mod_assimilation, &
-        ONLY: delt_obs, euler_flag
+   USE mod_assimilation_pdaf, &
+        ONLY: delt_obs, euler_flag, assimilate_pdaf
 #endif
 
    IMPLICIT NONE

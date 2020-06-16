@@ -30,7 +30,7 @@ MODULE trdtra
    USE lib_mpp        ! MPP library
    USE wrk_nemo       ! Memory allocation
 #if defined key_USE_PDAF
-   USE mod_assimilation, &
+   USE mod_assimilation_pdaf, &
         ONLY: euler_flag
 #endif
 

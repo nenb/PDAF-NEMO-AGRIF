@@ -34,7 +34,7 @@ SUBROUTINE prodRinvA_l_pdaf(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE mod_assimilation, &
+  USE mod_assimilation_pdaf, &
        ONLY: local_range, locweight, srange, rms_obs, distance_l
   USE mod_parallel_pdaf, &
        ONLY: mype_filter

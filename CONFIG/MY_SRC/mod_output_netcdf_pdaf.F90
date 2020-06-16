@@ -1,8 +1,8 @@
-!$Id: output_netcdf_asml.F90 61 2019-02-01 08:49:36Z lnerger $
+!$Id: mod_output_netcdf_pdaf.F90 61 2019-02-01 08:49:36Z lnerger $
 !BOP
 !
 ! !MODULE:
-MODULE output_netcdf_asml
+MODULE mod_output_netcdf_pdaf
 
 ! !DESCRIPTION:
 ! This module provides routines to initialize
@@ -14,7 +14,7 @@ MODULE output_netcdf_asml
 ! Later revisions - see SVN log
 !
 ! !USES:
-  USE kind_pdaf
+  USE mod_kind_pdaf
   USE mod_parallel_pdaf, &
        ONLY: abort_parallel
 
@@ -809,4 +809,4 @@ CONTAINS
 
   END SUBROUTINE close_netcdf_asml
 
-END MODULE output_netcdf_asml
+END MODULE mod_output_netcdf_pdaf

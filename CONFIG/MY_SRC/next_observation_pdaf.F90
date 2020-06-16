@@ -29,8 +29,8 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 ! Later revisions - see svn log
 !
 ! !USES:
-  USE kind_pdaf
-  USE mod_assimilation, &
+  USE mod_kind_pdaf
+  USE mod_assimilation_pdaf, &
        ONLY: delt_obs
   USE mod_parallel_pdaf, &
        ONLY: mype_ens

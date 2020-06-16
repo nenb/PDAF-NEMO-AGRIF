@@ -49,7 +49,7 @@ MODULE tranxt
    USE agrif_opa_interp
 #endif
 #if defined key_USE_PDAF
-   USE mod_assimilation, &
+   USE mod_assimilation_pdaf, &
         ONLY: euler_flag
 #endif
 

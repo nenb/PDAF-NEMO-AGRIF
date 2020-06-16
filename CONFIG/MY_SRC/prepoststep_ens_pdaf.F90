@@ -39,21 +39,21 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   ! Later revisions - see svn log
   !
   ! !USES:
-  USE kind_pdaf
-  USE mod_assimilation, &
+  USE mod_kind_pdaf
+  USE mod_assimilation_pdaf, &
        ONLY: screen, filtertype, subtype, forget, local_range, &
        locweight, srange, rms_obs, delt_obs, dim_lag, iter, &
        output_ssh, output_t, output_s, output_u, output_v
   USE mod_parallel_pdaf, &
        ONLY: mype_world, mype_filter, npes_filter, COMM_filter, &
        gather_ens
-  USE mod_statevector, &
+  USE mod_statevector_pdaf, &
        ONLY: ssh_dim_state, ssh_p_dim_state, t_dim_state, &
        t_p_dim_state, s_dim_state, s_p_dim_state, u_dim_state, &
        u_p_dim_state, v_p_dim_state, v_dim_state, ssh_p_offset, &
        t_p_offset, s_p_offset, u_p_offset, v_p_offset, mpi_subd_lat, &
        mpi_subd_lon, mpi_subd_vert
-  USE output_netcdf_asml, &
+  USE mod_output_netcdf_pdaf, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml, &
        output_lev
   USE in_out_manager, &
