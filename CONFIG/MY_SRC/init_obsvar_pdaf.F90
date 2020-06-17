@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_obsvar_pdaf(step, dim_obs_p, obs_p, meanvar)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEIK/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -53,5 +53,5 @@ SUBROUTINE init_obsvar_pdaf(step, dim_obs_p, obs_p, meanvar)
   WRITE (*,*) 'TEMPLATE init_obsvar_pdaf.F90: Set mean observation variance here!'
 
 !  meanvar = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_obsvar_pdaf

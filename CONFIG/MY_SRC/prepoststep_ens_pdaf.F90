@@ -6,7 +6,7 @@
 ! !INTERFACE:
 SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      state_p, Uinv, ens_p, flag)
-
+!$AGRIF_DO_NOT_TREAT
   ! !DESCRIPTION:
   ! User-supplied routine for PDAF.
   ! Used in the filters: SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -56,10 +56,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   USE mod_output_netcdf_pdaf, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml, &
        output_lev
-  USE in_out_manager, &
-       ONLY: nit000, nitend
-  USE dom_oce, ONLY: rdt
-  USE par_oce, ONLY: jpiglo, jpjglo, jpk
+  USE mod_agrif_pdaf, ONLY: jpiglo, jpjglo, jpk, nitend, nit000, rdt
 
   IMPLICIT NONE
 
@@ -438,5 +435,5 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 
   ! Tidy up statistics
   DEALLOCATE(hist_true, hist_mean)
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE prepoststep_ens_pdaf

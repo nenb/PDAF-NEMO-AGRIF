@@ -3,7 +3,7 @@
 !
 ! !MODULE:
 MODULE mod_assimilation_pdaf
-
+!$AGRIF_DO_NOT_TREAT
   ! !DESCRIPTION:
   ! This module provides variables needed for the 
   ! assimilation within the routines of the dummy model.
@@ -279,5 +279,5 @@ CONTAINS
     END IF
 
   END SUBROUTINE assimilate_pdaf
-
+!$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_assimilation_pdaf

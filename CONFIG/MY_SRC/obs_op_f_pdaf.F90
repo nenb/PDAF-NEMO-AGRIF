@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE obs_op_f_pdaf(step, dim_p, dim_obs_f, state_p, m_state_f)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -61,5 +61,5 @@ SUBROUTINE obs_op_f_pdaf(step, dim_p, dim_obs_f, state_p, m_state_f)
   WRITE (*,*) 'TEMPLATE obs_op_f_pdaf.F90: Implement application of observation operator here!'
 
 !   m_state_f = ??
-  
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE obs_op_f_pdaf

@@ -6,7 +6,7 @@
 ! !INTERFACE:
 SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      ens_p, flag)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEIK/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -33,7 +33,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
   USE mod_statevector_pdaf, ONLY: fill2d_ensarray, fill3d_ensarray
   USE netcdf
-  USE par_oce, ONLY: jpiglo,jpjglo,jpk
+  USE mod_agrif_pdaf, ONLY: jpiglo,jpjglo,jpk
 
   IMPLICIT NONE
 
@@ -204,5 +204,5 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)
 
   DEALLOCATE(wght)
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_ens_pdaf

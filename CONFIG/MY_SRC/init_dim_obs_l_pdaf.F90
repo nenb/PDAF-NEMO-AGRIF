@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_dim_obs_l_pdaf(domain_p, step, dim_obs_f, dim_obs_l)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -51,6 +51,6 @@ SUBROUTINE init_dim_obs_l_pdaf(domain_p, step, dim_obs_f, dim_obs_l)
 
 ! Also initialize array of distances here
 !   distance_l = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_obs_l_pdaf
 

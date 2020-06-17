@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE collect_state_pdaf(dim_p, state_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -52,5 +52,5 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 
   CALL fill2d_statevector(dim_p, state_p)
   CALL fill3d_statevector(dim_p, state_p)
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE collect_state_pdaf

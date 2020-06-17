@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_dim_obs_f_pdaf(step, dim_obs_f)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -48,6 +48,6 @@ SUBROUTINE init_dim_obs_f_pdaf(step, dim_obs_f)
   WRITE (*,*) 'TEMPLATE init_dim_obs_f_pdaf.F90: Set full observation dimension here!'
 
 !   dim_obs_f = ??
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_obs_f_pdaf
 

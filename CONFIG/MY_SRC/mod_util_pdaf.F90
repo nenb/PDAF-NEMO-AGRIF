@@ -1,5 +1,5 @@
 MODULE mod_util_pdaf
-
+!$AGRIF_DO_NOT_TREAT
 CONTAINS
 
   !$Id: init_info_pdaf.F90 1589 2015-06-12 11:57:58Z lnerger $
@@ -244,5 +244,5 @@ CONTAINS
     END IF showconf
 
   END SUBROUTINE read_config_pdaf
-
+!$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_util_pdaf

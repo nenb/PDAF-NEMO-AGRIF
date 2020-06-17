@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -45,5 +45,5 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   WRITE (*,*) 'TEMPLATE init_n_domains_pdaf.F90: Set number of local analysis domains here!'
 
 !   n_domains_p = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_n_domains_pdaf

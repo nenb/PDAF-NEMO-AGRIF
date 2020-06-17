@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE l2g_state_pdaf(step, domain, dim_l, state_l, dim_p, state_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -51,5 +51,5 @@ SUBROUTINE l2g_state_pdaf(step, domain, dim_l, state_l, dim_p, state_p)
   WRITE (*,*) 'TEMPLATE l2g_state_pdaf.F90: Set part of global state vector here!'
 
 !  state_p = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE l2g_state_pdaf

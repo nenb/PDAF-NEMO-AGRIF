@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE g2l_state_pdaf(step, domain_p, dim_p, state_p, dim_l, state_l)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -50,5 +50,5 @@ SUBROUTINE g2l_state_pdaf(step, domain_p, dim_p, state_p, dim_l, state_l)
 
 !   state_l = ??
 
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE g2l_state_pdaf

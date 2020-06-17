@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE distribute_state_pdaf(dim_p, state_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -56,5 +56,5 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 
   CALL distrib2d_statevector(dim_p, state_p)
   CALL distrib3d_statevector(dim_p, state_p)
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE distribute_state_pdaf

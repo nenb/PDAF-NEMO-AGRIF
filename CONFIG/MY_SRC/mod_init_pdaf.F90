@@ -1,5 +1,5 @@
 MODULE mod_init_pdaf
-
+!$AGRIF_DO_NOT_TREAT
 CONTAINS
 !-------------------------------------------------------------------------------
 !$Id: init_pdaf.F90 1864 2017-12-20 19:53:30Z lnerger $
@@ -214,6 +214,6 @@ CONTAINS
          distribute_state_pdaf, prepoststep_ens_pdaf, status_pdaf)
 
   END SUBROUTINE init_pdaf
-
+!$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_init_pdaf
 

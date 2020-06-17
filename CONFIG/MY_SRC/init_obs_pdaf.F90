@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_obs_pdaf(step, dim_obs_p, observation_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/ETKF/ESTKF
@@ -46,6 +46,6 @@ SUBROUTINE init_obs_pdaf(step, dim_obs_p, observation_p)
   WRITE (*,*) 'TEMPLATE init_obs_pdaf.F90: Initialize observation vector here!'
 
 !   observation_p = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_obs_pdaf
 

@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE prodRinvA_l_pdaf(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -189,5 +189,5 @@ SUBROUTINE prodRinvA_l_pdaf(domain_p, step, dim_obs_l, rank, obs_l, A_l, C_l)
 ! *** Clean up ***
 
   DEALLOCATE(weight)
-  
+!$AGRIF_END_DO_NOT_TREAT  
 END SUBROUTINE prodRinvA_l_pdaf

@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE obs_op_pdaf(step, dim_p, dim_obs_p, state_p, m_state_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/ETKF/ESTKF
@@ -50,5 +50,5 @@ SUBROUTINE obs_op_pdaf(step, dim_p, dim_obs_p, state_p, m_state_p)
   WRITE (*,*) 'TEMPLATE obs_op_pdaf.F90: Implement application of observation operator here!'
 
 !   m_state_p = ??
-  
+!$AGRIF_END_DO_NOT_TREAT  
 END SUBROUTINE obs_op_pdaf

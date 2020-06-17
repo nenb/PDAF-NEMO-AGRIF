@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -45,5 +45,5 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
   WRITE (*,*) 'TEMPLATE init_dim_l_pdaf.F90: Set local state dimension here!'
 
 !   dim_l = ??
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_l_pdaf

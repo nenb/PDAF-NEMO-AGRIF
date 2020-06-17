@@ -6,7 +6,7 @@
 ! !INTERFACE:
 SUBROUTINE g2l_obs_pdaf(domain, step, dim_obs_f, dim_obs_l, mstate_f, &
      mstate_l)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: LSEIK/LETKF/LESTKF
@@ -45,12 +45,12 @@ SUBROUTINE g2l_obs_pdaf(domain, step, dim_obs_f, dim_obs_l, mstate_f, &
 ! *******************************************************
 ! *** Perform localization of some observation vector *** 
 ! *** to the current local analysis domain.           ***
-! *******************************************************
+! ***************d_****************************************
 
   ! Template reminder - delete when implementing functionality
   WRITE (*,*) 'TEMPLATE g2l_obs_pdaf.F90: Initialize local observed state here!'
 
 !   mstate_l = ??
 
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE g2l_obs_pdaf

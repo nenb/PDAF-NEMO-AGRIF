@@ -3,7 +3,7 @@
 !
 ! !MODULE:
 MODULE mod_parallel_pdaf
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! This modules provides variables for the MPI parallelization
 ! to be shared between model-related routines. The are variables
@@ -176,7 +176,7 @@ CONTAINS
 ! Later revisions - see svn log
 !
 ! !USES:
-    USE par_oce, ONLY: jpnij ! Number of model MPI processes
+    USE mod_agrif_pdaf, ONLY: jpnij ! Number of model MPI processes
 
     IMPLICIT NONE
 
@@ -496,5 +496,5 @@ CONTAINS
      END IF mype
 
    END SUBROUTINE gather_ens
-
+!$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_parallel_pdaf

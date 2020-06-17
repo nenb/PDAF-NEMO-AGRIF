@@ -1,5 +1,5 @@
 MODULE mod_statevector_pdaf
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! This module provides variables & routines for
 ! manipulating the state vector.
@@ -67,8 +67,8 @@ CONTAINS
 
     ! !USES:
     USE mod_parallel_pdaf, ONLY: abort_parallel
-    USE par_oce, ONLY: jpk, jpiglo ,jpjglo
-    USE dom_oce, ONLY: nldi, nldj, nlei, nlej, nimpp, njmpp
+    USE mod_agrif_pdaf, ONLY: jpk, jpiglo ,jpjglo, nldi, nldj, &
+         nlei, nlej, nimpp, njmpp
 
     IMPLICIT NONE
 
@@ -107,7 +107,7 @@ CONTAINS
     ! Land points are included in the state vector.
 
     ! !USES:
-    USE dom_oce, ONLY: ssmask, nldi, nldj
+    USE mod_agrif_pdaf, ONLY: ssmask, nldi, nldj
 
     IMPLICIT NONE
 
@@ -122,7 +122,7 @@ CONTAINS
     cnt=0
     DO j = 1, mpi_subd_lat
        DO i = 1, mpi_subd_lon
-          IF (ss_mask(nldi+i-1,nldj+j-1) .EQ. 1) THEN
+          IF (ssmask(nldi+i-1,nldj+j-1) .EQ. 1) THEN
              cnt=cnt+1
           END IF
        END DO
@@ -145,7 +145,7 @@ CONTAINS
     ! Land points are included in the state vector.
 
     ! !USES:
-    USE dom_oce, ONLY: tmask, umask, vmask, nldi, nldj
+    USE mod_agrif_pdaf, ONLY: tmask, umask, vmask, nldi, nldj
 
     IMPLICIT NONE
 
@@ -282,9 +282,8 @@ CONTAINS
 
     ! !USES:
     USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, nimpp, njmpp, jpiglo,jpjglo
     USE netcdf
-    USE dom_oce, ONLY: nldi, nldj, nimpp, njmpp
-    USE par_oce, ONLY: jpiglo,jpjglo
 
     IMPLICIT NONE
 
@@ -420,8 +419,7 @@ CONTAINS
     ! Fill state vector with 2d state variables.
 
     ! !USES:
-    USE dom_oce, ONLY: nldi, nldj, nlei, nlej
-    USE oce, ONLY: sshb
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, nlei, nlej, sshb
 
     IMPLICIT NONE
 
@@ -457,9 +455,8 @@ CONTAINS
     ! Distribute state vector 2d state variables.
 
     ! !USES:
-    USE dom_oce, ONLY: nldi, nldj
-    USE oce, ONLY: sshb
-    USE lbclnk
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, sshb
+    USE lbclnk, ONLY: lbc_lnk
 
     IMPLICIT NONE
 
@@ -499,8 +496,8 @@ CONTAINS
 
     ! !USES:
     USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, nimpp, njmpp
     USE netcdf
-    USE dom_oce, ONLY: nldi, nldj, nimpp, njmpp
 
     IMPLICIT NONE
 
@@ -654,9 +651,7 @@ CONTAINS
     ! Fill state vector with 2d state variables.
 
     ! !USES:
-    USE dom_oce, ONLY: nldi, nldj
-    USE oce, ONLY: tsb, ub, vb
-    USE par_oce, ONLY: jp_tem, jp_sal
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, tsb, ub, vb, jp_tem, jp_sal
 
     IMPLICIT NONE
 
@@ -722,10 +717,8 @@ CONTAINS
     ! Distribute state vector 2d state variables.
 
     ! !USES:
-    USE dom_oce, ONLY: nldi, nldj
-    USE oce, ONLY: tsb, ub, vb
-    USE par_oce, ONLY: jp_tem, jp_sal
-    USE lbclnk
+    USE mod_agrif_pdaf, ONLY: nldi, nldj, tsb, ub, vb, jp_tem, jp_sal
+    USE lbclnk, ONLY: lbc_lnk
 
     IMPLICIT NONE
 
@@ -794,5 +787,5 @@ CONTAINS
     CALL lbc_lnk(vb, 'V', -1.)
 
   END SUBROUTINE distrib3d_statevector
-
+!$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_statevector_pdaf

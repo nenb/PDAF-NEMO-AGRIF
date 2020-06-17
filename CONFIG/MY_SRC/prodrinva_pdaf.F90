@@ -5,7 +5,7 @@
 !
 ! !INTERFACE:
 SUBROUTINE prodRinvA_pdaf(step, dim_obs_p, rank, obs_p, A_p, C_p)
-
+!$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/ETKF/ESTKF
@@ -60,5 +60,5 @@ SUBROUTINE prodRinvA_pdaf(step, dim_obs_p, rank, obs_p, A_p, C_p)
 ! *************************************
 
 ! C_p = ?
-
+!$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE prodRinvA_pdaf
