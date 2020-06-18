@@ -111,6 +111,7 @@ export TOOLS_DIR=${MAIN_DIR}/TOOLS
 export COMPIL_DIR=${MAIN_DIR}/TOOLS/COMPILE
 export NEMO_DIR=${MAIN_DIR}/${x_s}
 export AGRIFUSE=10
+export PDAFUSE=10
 declare -a TAB
 declare -a REMOTE_CTL
 declare -a LOCAL_REF
@@ -348,6 +349,8 @@ export USEBLD=bldxag.cfg
 #- We look after agrif
 grep key_agrif ${COMPIL_DIR}/cpp.fcm && export AGRIFUSE=1 && export USEBLD=${USEBLD/xag/}
 . ${COMPIL_DIR}/Fprep_agrif.sh ${NEW_CONF} ${NEMO_TDIR} || exit
+#- We look after PDAF
+grep key_USE_PDAF ${COMPIL_DIR}/cpp.fcm && export PDAFUSE=1
 
 #-
 #_ END OF CONFIGURATION PHASE
@@ -360,9 +363,14 @@ if [ "${NBR_PRC}" -gt 0 ]; then
     cd ${NEMO_TDIR}/${NEW_CONF} || cd -
 
 #if AGRIF we do a first preprocessing
+#if PDAF we use modified build config file for AGRIF prepro
+    export USEBLD_PP=bld_preproagr.cfg
+    if [ "$PDAFUSE" == 1 ]; then
+	export USEBLD_PP=bld_preproagr_pdaf.cfg
+    fi 
     if [ ${#x_c} -eq 0 ]; then
        if [ "$AGRIFUSE" == 1 ]; then 
-          fcm build --ignore-lock  -j 1 ${COMPIL_DIR}/bld_preproagr.cfg ||{ cd - ; exit ;}
+          fcm build --ignore-lock  -j 1 ${COMPIL_DIR}/${USEBLD_PP} ||{ cd - ; exit ;}
           echo ""
           echo "---------------------------------"
           echo "CONV preprocessing successfull !!"
