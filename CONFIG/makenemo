@@ -349,6 +349,7 @@ export USEBLD=bldxag.cfg
 #- We look after agrif
 grep key_agrif ${COMPIL_DIR}/cpp.fcm && export AGRIFUSE=1 && export USEBLD=${USEBLD/xag/}
 . ${COMPIL_DIR}/Fprep_agrif.sh ${NEW_CONF} ${NEMO_TDIR} || exit
+
 #- We look after PDAF
 grep key_USE_PDAF ${COMPIL_DIR}/cpp.fcm && export PDAFUSE=1
 
