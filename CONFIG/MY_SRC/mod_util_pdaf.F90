@@ -189,11 +189,12 @@ CONTAINS
     USE mod_parallel_pdaf, &
          ONLY: mype_ens
     USE mod_assimilation_pdaf, &
-         ONLY: filtertype, subtype, dim_ens, delt_obs, screen,&
-         incremental, type_forget, forget, local_range,&
+         ONLY: filtertype, subtype, dim_ens, delt_obs, child_dt_fac, &
+         screen, incremental, type_forget, forget, local_range,&
          locweight, srange, rms_obs,type_trans,&
          type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
-         istate_fname_u, istate_fname_v
+         istate_fname_u, istate_fname_v, istate_fname_t_child,&
+         istate_fname_u_child, istate_fname_v_child
 
     IMPLICIT NONE
     !EOP
@@ -202,10 +203,11 @@ CONTAINS
     CHARACTER(len=100) :: nmlfile   ! name of namelist file
 
     NAMELIST /pdaf_nml/ filtertype, subtype, dim_ens,&
-         delt_obs, screen,incremental, type_forget, forget,&
+         delt_obs, child_dt_fac, screen,incremental, type_forget, forget,&
          local_range, locweight, srange, rms_obs,type_trans,&
          type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
-         istate_fname_u, istate_fname_v
+         istate_fname_u, istate_fname_v, istate_fname_t_child,&
+         istate_fname_u_child, istate_fname_v_child
 
     ! ****************************************************
     ! ***   Initialize PDAF parameters from namelist   ***
@@ -227,6 +229,7 @@ CONTAINS
        WRITE (*,'(5x,a,i10)')    'subtype      ', subtype
        WRITE (*,'(5x,a,i10)')    'dim_ens      ', dim_ens
        WRITE (*,'(5x,a,i10)')    'delt_obs     ', delt_obs
+       WRITE (*,'(5x,a,i10)')    'child_dt_fac ', child_dt_fac
        WRITE (*,'(5x,a,i10)')    'screen       ', screen
        WRITE (*,'(5x,a,i10)')    'incremental  ', incremental
        WRITE (*,'(5x,a,i10)')    'type_forget  ', type_forget
@@ -239,6 +242,9 @@ CONTAINS
        WRITE (*,'(5x,a,a)')  'istate_fname_t   ', istate_fname_t
        WRITE (*,'(5x,a,a)')  'istate_fname_u   ', istate_fname_u
        WRITE (*,'(5x,a,a)')  'istate_fname_v   ', istate_fname_v
+       WRITE (*,'(5x,a,a)')  'istate_fname_t_child  ', istate_fname_t_child
+       WRITE (*,'(5x,a,a)')  'istate_fname_u_child  ', istate_fname_u_child
+       WRITE (*,'(5x,a,a)')  'istate_fname_v_child  ', istate_fname_v_child
        WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
     END IF showconf
