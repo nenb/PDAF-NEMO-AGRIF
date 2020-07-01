@@ -43,20 +43,22 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   USE mod_assimilation_pdaf, &
        ONLY: screen, filtertype, subtype, forget, local_range, &
        locweight, srange, rms_obs, delt_obs, dim_lag, iter, &
-       output_ssh, output_t, output_s, output_u, output_v
+       output_ssh, output_t, output_s, output_u, output_v, &
+       dim_state_p_par, dim_state_p_child
+  USE mod_agrif_pdaf, &
+       ONLY: nit000_par, rdt_par, nitend_par
   USE mod_parallel_pdaf, &
        ONLY: mype_world, mype_filter, npes_filter, COMM_filter, &
-       gather_ens
+       gather_ens, jpiglo_par, jpjglo_par, jpk_par
   USE mod_statevector_pdaf, &
-       ONLY: ssh_dim_state, ssh_p_dim_state, t_dim_state, &
-       t_p_dim_state, s_dim_state, s_p_dim_state, u_dim_state, &
-       u_p_dim_state, v_p_dim_state, v_dim_state, ssh_p_offset, &
-       t_p_offset, s_p_offset, u_p_offset, v_p_offset, mpi_subd_lat, &
-       mpi_subd_lon, mpi_subd_vert
+       ONLY: ssh_dim_state_par, ssh_p_dim_state_par, t_dim_state_par, &
+       t_p_dim_state_par, s_dim_state_par, s_p_dim_state_par, u_dim_state_par, &
+       u_p_dim_state_par, v_p_dim_state_par, v_dim_state_par, ssh_p_offset_par, &
+       t_p_offset_par, s_p_offset_par, u_p_offset_par, v_p_offset_par, &
+       mpi_subd_lat_par, mpi_subd_lon_par, mpi_subd_vert_par
   USE mod_output_netcdf_pdaf, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml, &
        output_lev
-  USE mod_agrif_pdaf, ONLY: jpiglo, jpjglo, jpk, nitend, nit000, rdt
 
   IMPLICIT NONE
 
@@ -138,9 +140,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         IF (output_ssh == .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for SSH analysis field.'
            var = 'sossheig'
-           CALL init_netcdf_asml(nit000, rdt, jpiglo, jpjglo, output_lev, trim(var), &
+           CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '2D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend, dim_lag)
+                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -148,9 +150,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         IF (output_T == .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for T analysis field.'
            var = 'votemper'
-           CALL init_netcdf_asml(nit000, rdt, jpiglo, jpjglo, output_lev, trim(var), &
+           CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend, dim_lag)
+                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -158,9 +160,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         IF (output_S == .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for S analysis field.'
            var = 'vosaline'
-           CALL init_netcdf_asml(nit000, rdt, jpiglo, jpjglo, output_lev, trim(var), &
+           CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend, dim_lag)
+                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -168,9 +170,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         IF (output_U == .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for U analysis field.'
            var = 'vozocrtx'
-           CALL init_netcdf_asml(nit000, rdt, jpiglo, jpjglo, output_lev, trim(var), &
+           CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend, dim_lag)
+                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -178,9 +180,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         IF (output_V == .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for V analysis field.'
            var = 'vomecrty'
-           CALL init_netcdf_asml(nit000, rdt, jpiglo, jpjglo, output_lev, trim(var), &
+           CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend, dim_lag)
+                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
      ELSE firststep
@@ -188,6 +190,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            WRITE (*, '(8x, a)') 'XIOS writes forecast fields, prepoststep does nothing.'
         ELSE
            WRITE (*, '(8x, a)') 'Begin prepoststep write of ensemble of analysis fields.'
+           WRITE (*, '(8x, a)') 'WARNING: AGRIF child grid is not written to file.'
         END IF
      END IF firststep
   END IF mype0
@@ -297,17 +300,21 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   ! *** File output ***
   ! *******************
 
+! ****************
+! NEMO grid output
+! ****************
+
   ! Only write analysis fields to file.
   ana: IF (anastr == 'ana') THEN
      ! Global ensembles for file output.
      ! *MUST* be allocated before entry into gather_X blocks.
-     ! 'ens_ssh' allocated a jpk value as ugly hack for
+     ! 'ens_ssh' allocated a jpk_par value as ugly hack for
      ! reusing the same routines for all state variables.
-     ALLOCATE(ens_ssh(jpiglo, jpjglo, jpk, dim_ens))
-     ALLOCATE(ens_t(jpiglo, jpjglo, jpk, dim_ens))
-     ALLOCATE(ens_s(jpiglo, jpjglo, jpk, dim_ens))
-     ALLOCATE(ens_u(jpiglo, jpjglo, jpk, dim_ens))
-     ALLOCATE(ens_v(jpiglo, jpjglo, jpk, dim_ens))
+     ALLOCATE(ens_ssh(jpiglo_par, jpjglo_par, jpk_par, dim_ens))
+     ALLOCATE(ens_t(jpiglo_par, jpjglo_par, jpk_par, dim_ens))
+     ALLOCATE(ens_s(jpiglo_par, jpjglo_par, jpk_par, dim_ens))
+     ALLOCATE(ens_u(jpiglo_par, jpjglo_par, jpk_par, dim_ens))
+     ALLOCATE(ens_v(jpiglo_par, jpjglo_par, jpk_par, dim_ens))
 
      ! Strategy is to gather global ensemble on a single PE with rank = k and
      ! then to write to file. Each state variable is written on a PE with a
@@ -322,36 +329,41 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      gather_ssh: IF (output_ssh == .TRUE.) THEN
         ! Gather ssh subset of ens_p on PE with *RANK 0* and store in ens_ssh.
         ! Set mpi_subd_vert=1 as SSH is a 2D field (ugly hack).
-        CALL gather_ens(rank_ssh, mpi_subd_lon, mpi_subd_lat, 1, jpiglo, &
-             jpjglo, jpk, ssh_p_dim_state, ssh_p_offset, dim_ens, ens_p, ens_ssh)
+        CALL gather_ens(rank_ssh, mpi_subd_lon_par, mpi_subd_lat_par, 1, jpiglo_par, &
+             jpjglo_par, jpk_par, ssh_p_dim_state_par, ssh_p_offset_par, dim_ens, ens_p, &
+             ens_ssh)
      END IF gather_ssh
 
      ! T
      gather_T: IF (output_T == .TRUE.) THEN
         ! Gather T subset of ens_p on PE with *RANK 1* and store in ens_t.
-        CALL gather_ens(rank_T, mpi_subd_lon, mpi_subd_lat, mpi_subd_vert, jpiglo, &
-             jpjglo, jpk, t_p_dim_state, t_p_offset, dim_ens, ens_p, ens_t)
+        CALL gather_ens(rank_T, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
+             jpiglo_par, jpjglo_par, jpk_par, t_p_dim_state_par, t_p_offset_par, dim_ens, &
+             ens_p, ens_t)
      END IF gather_T
 
      ! S
      gather_S: IF (output_S == .TRUE.) THEN
         ! Gather S subset of ens_p on PE with *RANK 2* and store in ens_s.
-        CALL gather_ens(rank_S, mpi_subd_lon, mpi_subd_lat, mpi_subd_vert, jpiglo, &
-             jpjglo, jpk, s_p_dim_state, s_p_offset, dim_ens, ens_p, ens_s)
+        CALL gather_ens(rank_S, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
+             jpiglo_par, jpjglo_par, jpk_par, s_p_dim_state_par, s_p_offset_par, dim_ens,&
+             ens_p, ens_s)
      END IF gather_S
 
      ! U
      gather_U: IF (output_U == .TRUE.) THEN
         ! Gather U subset of ens_p on PE with *RANK 3* and store in ens_u.
-        CALL gather_ens(rank_U, mpi_subd_lon, mpi_subd_lat, mpi_subd_vert, jpiglo, &
-             jpjglo, jpk, u_p_dim_state, u_p_offset, dim_ens, ens_p, ens_u)
+        CALL gather_ens(rank_U, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
+             jpiglo_par, jpjglo_par, jpk_par, u_p_dim_state_par, u_p_offset_par, dim_ens,&
+             ens_p, ens_u)
      END IF gather_U
 
      ! V
      gather_v: IF (output_V == .TRUE.) THEN
         ! Gather V subset of ens_p on PE with *RANK 4* and store in ens_v.
-        CALL gather_ens(rank_V, mpi_subd_lon, mpi_subd_lat, mpi_subd_vert, jpiglo, &
-             jpjglo, jpk, v_p_dim_state, v_p_offset, dim_ens, ens_p, ens_v)
+        CALL gather_ens(rank_V, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
+             jpiglo_par, jpjglo_par, jpk_par, v_p_dim_state_par, v_p_offset_par, dim_ens,&
+             ens_p, ens_v)
      END IF gather_v
 
      ! SSH
@@ -359,7 +371,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         var='sossheig'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_ssh
-        CALL write_netcdf_asml(anastr, jpiglo, jpjglo, jpk, iter, &
+        CALL write_netcdf_asml(anastr, jpiglo_par, jpjglo_par, jpk_par, iter, &
              output_lev, trim(var), '2D', rmse_est, rmse_true, mrmse_est_null, &
              mrmse_true_null, mrmse_est_step, mrmse_true_step, dim_ens, ens_ssh, &
              hist_true, hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, &
@@ -372,7 +384,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         var='votemper'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_T
-        CALL write_netcdf_asml(anastr, jpiglo, jpjglo, jpk, iter, &
+        CALL write_netcdf_asml(anastr, jpiglo_par, jpjglo_par, jpk_par, iter, &
              output_lev, trim(var), '3D', rmse_est, rmse_true, mrmse_est_null, &
              mrmse_true_null, mrmse_est_step, mrmse_true_step, dim_ens, ens_t, &
              hist_true, hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, &
@@ -385,7 +397,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         var='vosaline'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_S
-        CALL write_netcdf_asml(anastr, jpiglo, jpjglo, jpk, iter, &
+        CALL write_netcdf_asml(anastr, jpiglo_par, jpjglo_par, jpk_par, iter, &
              output_lev, trim(var), '3D', rmse_est, rmse_true, mrmse_est_null, &
              mrmse_true_null, mrmse_est_step, mrmse_true_step, dim_ens, ens_s, &
              hist_true, hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, &
@@ -398,7 +410,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         var='vozocrtx'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_U
-        CALL write_netcdf_asml(anastr, jpiglo, jpjglo, jpk, iter, &
+        CALL write_netcdf_asml(anastr, jpiglo_par, jpjglo_par, jpk_par, iter, &
              output_lev, trim(var), '3D', rmse_est, rmse_true, mrmse_est_null, &
              mrmse_true_null, mrmse_est_step, mrmse_true_step, dim_ens, ens_u, &
              hist_true, hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, &
@@ -411,7 +423,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         var='vomecrty'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_V
-        CALL write_netcdf_asml(anastr, jpiglo, jpjglo, jpk, iter, &
+        CALL write_netcdf_asml(anastr, jpiglo_par, jpjglo_par, jpk_par, iter, &
              output_lev, trim(var), '3D', rmse_est, rmse_true, mrmse_est_null, &
              mrmse_true_null, mrmse_est_step, mrmse_true_step, dim_ens, ens_v, &
              hist_true, hist_mean, skewness, kurtosis, dim_lag, rmse_s, trmse_s, &
