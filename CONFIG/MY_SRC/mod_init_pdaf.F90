@@ -1,5 +1,6 @@
 MODULE mod_init_pdaf
 !$AGRIF_DO_NOT_TREAT
+
 CONTAINS
 !-------------------------------------------------------------------------------
 !$Id: init_pdaf.F90 1864 2017-12-20 19:53:30Z lnerger $
@@ -24,18 +25,21 @@ CONTAINS
 ! 2008-10 - Lars Nerger - Initial code
 ! Later revisions - see svn log
 !
-! !USES:
+    ! !USES:
     USE mod_kind_pdaf
     USE mod_parallel_pdaf, &
          ONLY: n_modeltasks, task_id, COMM_model, COMM_filter,&
          COMM_couple, COMM_ensemble, mype_ens, filterpe, abort_parallel
     USE mod_assimilation_pdaf, &
-         ONLY: dim_state_p, screen, filtertype, subtype, &
-         dim_ens, rms_obs, incremental, covartype, type_forget, &
-         forget, rank_analysis_enkf, locweight, local_range, srange, &
-         type_trans, type_sqrt, delt_obs
-    USE mod_statevector_pdaf, ONLY: calc_statevector_dim
+         ONLY: dim_state_p, dim_state_p_par, dim_state_p_child, screen,&
+         filtertype, subtype, dim_ens, rms_obs, incremental, covartype, &
+         type_forget, forget, rank_analysis_enkf, locweight, local_range, &
+         srange, type_trans, type_sqrt, delt_obs, state_p_pointer, &
+         status_pointer, child_dt_fac
+    USE mod_statevector_pdaf, ONLY: calc_statevector_dim, calc_offset, &
+         calc_dim
     USE mod_util_pdaf, ONLY: init_info_pdaf, read_config_pdaf
+    USE PDAF_interfaces_module, ONLY: PDAF_set_ens_pointer
 
     IMPLICIT NONE
 
@@ -71,8 +75,13 @@ CONTAINS
        WRITE (*,'(/1x,a)') 'INITIALIZE PDAF - ONLINE MODE'
     END IF
 
-    ! Compute local state vector dimension
-    CALL calc_statevector_dim(dim_state_p)
+    ! Compute dimension and offset of each state variable in statevector.
+    CALL calc_offset()
+    CALL calc_dim()
+
+    ! Compute total local statevector dimension & dimension on different grids.
+    ! If only using NEMO (parent) grid, dim_state_p_child is set to 0.
+    CALL calc_statevector_dim(dim_state_p, dim_state_p_par, dim_state_p_child)
 
     ! **********************************************************
     ! ***   CONTROL OF PDAF - used in call to PDAF_init      ***
@@ -128,7 +137,8 @@ CONTAINS
     ! *********************************************************************
 
     ! *** Forecast length (time interval between analysis steps) ***
-    delt_obs = 24     ! Number of time steps between analysis/assimilation steps
+    delt_obs = 24      ! Number of time steps between analysis/assimilation steps
+    child_dt_fac = 0   ! Timestep factor between child and parent grid
 
     ! *** specifications for observations ***
     rms_obs = 0.5    ! Observation error standard deviation
@@ -205,10 +215,12 @@ CONTAINS
        CALL abort_parallel()
     END IF
 
+    ! Set pointer to PDAF statevector for access from NEMO/AGRIF
+    CALL PDAF_set_ens_pointer(state_p_pointer, status_pointer)
 
-    ! ******************************'***
+    ! **********************************
     ! *** Prepare ensemble forecasts ***
-    ! ******************************'***
+    ! **********************************
 
     CALL PDAF_get_state(steps, timenow, doexit, next_observation_pdaf, &
          distribute_state_pdaf, prepoststep_ens_pdaf, status_pdaf)

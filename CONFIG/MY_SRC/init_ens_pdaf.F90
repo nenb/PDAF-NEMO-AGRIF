@@ -28,12 +28,14 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 !
 ! !USES:
   USE mod_kind_pdaf
+  USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens, jpiglo_par, jpjglo_par, &
+       jpiglo_child, jpjglo_child, jpk_child, jpk_par
   USE mod_assimilation_pdaf, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
-       screen, wght
-  USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens
-  USE mod_statevector_pdaf, ONLY: fill2d_ensarray, fill3d_ensarray
+       screen, wght, istate_fname_t_child, istate_fname_u_child, &
+       istate_fname_v_child
+  USE mod_statevector_pdaf, ONLY: fill2d_par_ensarray, fill3d_par_ensarray, &
+       fill2d_child_ensarray, fill3d_child_ensarray
   USE netcdf
-  USE mod_agrif_pdaf, ONLY: jpiglo,jpjglo,jpk
 
   IMPLICIT NONE
 
@@ -49,14 +51,14 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   INTEGER, INTENT(inout) :: flag                 ! PDAF status flag
 
   ! *** local variables ***
-  REAL(pwp) :: dimens_mean
   INTEGER :: s, i, j, var                 ! Counters
   INTEGER :: stat(20000)                  ! Status flag for NetCDF commands
   INTEGER :: ncid_in                      ! ID for NetCDF file
-  INTEGER :: id_dimx,id_dimy,id_dimz   ! IDs for dimensions
-  INTEGER :: dim_lon, dim_lat, dim_vert ! Initial state dimensions
-  CHARACTER(len=100) :: istate_ncfile(3)     ! Files holding initial state estimate
+  INTEGER :: id_dimx,id_dimy,id_dimz      ! IDs for dimensions
+  INTEGER :: dim_lon, dim_lat, dim_vert   ! Initial state dimensions
+  CHARACTER(len=100) :: istate_ncfile(3)      ! Files holding initial state estimate
   CHARACTER(len=20), DIMENSION(3) :: zdim_list ! z dimension labels for ic files
+  REAL(pwp) :: dimens_mean               ! Constant used in generating ens weights
 
   ! List of z dimension labels for initial state files
   DATA zdim_list / 'deptht', 'depthu', 'depthv' /
@@ -102,6 +104,10 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   !
   ! **********************************************************************************
 
+! ***********
+! Parent grid
+! ***********
+
   ! Files holding initial state estimate
   istate_ncfile(1) = TRIM(istate_fname_t)
   istate_ncfile(2) = TRIM(istate_fname_u)
@@ -114,7 +120,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   END IF
 
   ! Check dimensions for each state variable file
-  file_dimcheck:DO var = 1, size(istate_ncfile)
+  parent_dimcheck:DO var = 1, size(istate_ncfile)
 
      ! *******************************************
      ! *** Open file containing initial state ***
@@ -158,8 +164,8 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      END DO
 
      ! Compare NEMO global dimensions to dimensions in file.
-     IF (dim_lon == jpiglo .AND. dim_lat == jpjglo &
-          .AND. dim_vert == jpk) THEN
+     IF (dim_lon == jpiglo_par .AND. dim_lat == jpjglo_par &
+          .AND. dim_vert == jpk_par) THEN
         IF (screen > 1 .AND. mype_ens == 0) WRITE (*,'(/9x, a)') &
              'Dimensions in initial state file valid.'
      ELSE
@@ -184,7 +190,7 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
         END IF
      END DO
 
-  END DO file_dimcheck
+  END DO parent_dimcheck
 
 
   ! ***************************************************
@@ -193,16 +199,129 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 
   IF (mype_ens == 0) THEN
      WRITE (*,'(/1x,a)') '------- Reading Initial State -------------'
-     WRITE (*,'(/1x,a)') 'Calling 2dfill_ensarray'
-     WRITE (*,'(/1x,a)') 'Calling 3dfill_ensarray'
+     WRITE (*,'(/1x,a)') 'Calling NEMO 2dfill_ensarray'
+     WRITE (*,'(/1x,a)') 'Calling NEMO 3dfill_ensarray'
   END IF
 
-  CALL fill2d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
+  CALL fill2d_par_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
   ! 'T' also fills salinity ('S') ensemble.
-  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), 'T', ens_p)
-  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(2), 'U', ens_p)
-  CALL fill3d_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)
+  CALL fill3d_par_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), 'T', ens_p)
+  CALL fill3d_par_ensarray(dim_p, dim_ens, wght, istate_ncfile(2), 'U', ens_p)
+  CALL fill3d_par_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)
+
+
+#if defined key_agrif
+! ***********
+! Child grid
+! ***********
+
+  ! Files holding initial state estimate
+  istate_ncfile(1) = TRIM(istate_fname_t_child)
+  istate_ncfile(2) = TRIM(istate_fname_u_child)
+  istate_ncfile(3) = TRIM(istate_fname_v_child)
+
+  IF(screen > 1) THEN
+     IF(mype_ens == 0) WRITE (*,'(/9x, a, 3x, a, 3x, a, 3x, a)')&
+          "Initial state estimate files:", istate_ncfile(1),&
+          istate_ncfile(2), istate_ncfile(3)
+  END IF
+
+  ! Check dimensions for each state variable file
+  child_dimcheck:DO var = 1, size(istate_ncfile)
+
+     ! *******************************************
+     ! *** Open file containing initial state ***
+     ! *******************************************
+     s = 1
+     stat(s) = NF90_OPEN(istate_ncfile(var) , NF90_NOWRITE, ncid_in)
+
+     DO j = 1, s
+        IF (stat(j) .NE. NF90_NOERR) THEN
+           WRITE(*,'(/9x, a, 3x, a)') &
+                'NetCDF error in opening initial state file:',&
+                istate_ncfile(var)
+           CALL abort_parallel()
+        END IF
+     END DO
+
+     ! ************************
+     ! *** Check dimensions ***
+     ! ************************
+
+     s=1
+     stat(s) = NF90_INQ_DIMID(ncid_in, 'x', id_dimx)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimx, len=dim_lon)
+     s = s + 1
+     stat(s) = NF90_INQ_DIMID(ncid_in, 'y', id_dimy)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat)
+     s = s + 1
+     stat(s) = NF90_INQ_DIMID(ncid_in, TRIM(zdim_list(var)), id_dimz)
+     s = s + 1
+     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimz, len=dim_vert)
+
+     DO j = 1, s
+        IF (stat(j) .NE. NF90_NOERR) THEN
+           WRITE(*, '(/9x, a, 3x, i1, 3x, a, 3x, a)') &
+                'NetCDF error in reading dimension:', j,&
+                ' from initial state file:', istate_ncfile(var)
+           CALL abort_parallel()
+        END IF
+     END DO
+
+     ! Compare NEMO global dimensions to dimensions in file.
+     IF (dim_lon == jpiglo_child .AND. dim_lat == jpjglo_child &
+          .AND. dim_vert == jpk_child) THEN
+        IF (screen > 1 .AND. mype_ens == 0) WRITE (*,'(/9x, a)') &
+             'Dimensions in initial state file valid.'
+     ELSE
+        WRITE (*,'(/9x, a, 3x, a, 3x, a)') 'ERROR: Initial state file:', &
+             istate_ncfile(var), 'has invalid dimensions.'
+        CALL abort_parallel()
+     END IF
+
+     ! *******************************************
+     ! *** Close file containing initial state ***
+     ! *******************************************
+
+     s = 1
+     stat(s) = NF90_CLOSE(ncid_in)
+
+     DO j = 1, s
+        IF (stat(j) .NE. NF90_NOERR) THEN
+           WRITE(*,'(/9x, a, 3x, a)') &
+                'NetCDF error in closing initial state file:',&
+                istate_ncfile(var)
+           CALL abort_parallel()
+        END IF
+     END DO
+
+  END DO child_dimcheck
+
+
+  ! ***************************************************
+  ! *** Initialize ensemble array of state vectors  ***
+  ! ***************************************************
+
+  IF (mype_ens == 0) THEN
+     WRITE (*,'(/1x,a)') '------- Reading Initial State -------------'
+     WRITE (*,'(/1x,a)') 'Calling AGRIF 2dfill_ensarray'
+     WRITE (*,'(/1x,a)') 'Calling AGRIF 3dfill_ensarray'
+  END IF
+
+  CALL fill2d_child_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), ens_p)
+  ! 'T' also fills salinity ('S') ensemble.
+  CALL fill3d_child_ensarray(dim_p, dim_ens, wght, istate_ncfile(1), 'T', ens_p)
+  CALL fill3d_child_ensarray(dim_p, dim_ens, wght, istate_ncfile(2), 'U', ens_p)
+  CALL fill3d_child_ensarray(dim_p, dim_ens, wght, istate_ncfile(3), 'V', ens_p)
+#endif
+
+  ! ********
+  ! Clean up
+  ! ********
 
   DEALLOCATE(wght)
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_ens_pdaf
