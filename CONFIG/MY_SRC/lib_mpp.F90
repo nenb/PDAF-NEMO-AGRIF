@@ -317,12 +317,11 @@ CONTAINS
       ENDIF
 
 #if defined key_USE_PDAF
-!      IF( Agrif_Root() ) THEN             ! Only call init_parallel_pdaf once
-         screen_parallel=3                          ! PDAF output
-         ens_test_parallel=0                        ! PDAF ensemble size consistency
-                                                    ! check; not used.
-         CALL init_parallel_pdaf( ens_test_parallel, screen_parallel, mpi_comm_opa )
-!      ENDIF
+      IF( Agrif_Root() ) THEN      ! Only call init_parallel_pdaf on parent grid.
+         screen_parallel=3         ! PDAF output
+         ens_test_parallel=0       ! PDAF ensemble size consistency check; not used.
+         CALL init_parallel_pdaf( ens_test_parallel, screen_parallel, jpnij, mpi_comm_opa )
+      ENDIF
 #endif
 
 #if defined key_agrif

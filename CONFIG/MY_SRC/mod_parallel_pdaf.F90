@@ -50,6 +50,29 @@ MODULE mod_parallel_pdaf
   INTEGER :: screen_parallel = 1       ! Option for screen output
   INTEGER :: ens_test_parallel = 0     ! Ensemble size test - NOT USED
   INTEGER, ALLOCATABLE :: local_npes_model(:) ! # PEs per ensemble
+
+  ! Dimensions for different grids
+  INTEGER :: jpiglo_par
+  INTEGER :: jpjglo_par
+  INTEGER :: jpk_par
+  INTEGER :: jpiglo_child
+  INTEGER :: jpjglo_child
+  INTEGER :: jpk_child
+
+  ! MPI decomposition constants for different grids
+  INTEGER :: jpnij_par
+  INTEGER :: nldi_par
+  INTEGER :: nlei_par
+  INTEGER :: nldj_par
+  INTEGER :: nlej_par
+  INTEGER :: nldi_child
+  INTEGER :: nlei_child
+  INTEGER :: nldj_child
+  INTEGER :: nlej_child
+  INTEGER :: nimpp_par
+  INTEGER :: njmpp_par
+  INTEGER :: nimpp_child
+  INTEGER :: njmpp_child
 !EOP
   
 CONTAINS
@@ -120,7 +143,7 @@ CONTAINS
 ! !ROUTINE: init_parallel_pdaf --- Initialize communicators for PDAF
 !
 ! !INTERFACE:
-  SUBROUTINE init_parallel_pdaf(dim_ens, screen, mpi_comm)
+  SUBROUTINE init_parallel_pdaf(dim_ens, screen, num_pe, mpi_comm)
 
 ! !DESCRIPTION:
 ! Parallelization routine for a model with 
@@ -176,8 +199,6 @@ CONTAINS
 ! Later revisions - see svn log
 !
 ! !USES:
-    USE mod_agrif_pdaf, ONLY: jpnij ! Number of model MPI processes
-
     IMPLICIT NONE
 
 ! !ARGUMENTS:
@@ -186,6 +207,7 @@ CONTAINS
     ! is initialized later in the program. For dim_ens=0 no consistency check
     ! for ensemble size with number of model tasks is performed.
     INTEGER, INTENT(in)    :: screen ! Whether screen information is shown
+    INTEGER, INTENT(in)    :: num_pe ! Number of MPI domains
     INTEGER, INTENT(inout) :: mpi_comm ! MPI communicator after XIOS splitting
 
 ! !CALLING SEQUENCE:
@@ -228,9 +250,9 @@ CONTAINS
          WRITE (*, '(/1x, a)') 'Initialize communicators for assimilation with PDAF'
 
     ! *** Check consistency of number of parallel ensemble tasks ***
-    consist1: IF (n_modeltasks*jpnij /= npes_ens) THEN
+    consist1: IF (n_modeltasks*num_pe /= npes_ens) THEN
        WRITE (*,'(5x, a, i, i, i)') 'n_modeltasks, jpnij, npes_ens =',&
-            n_modeltasks,jpnij,npes_ens
+            n_modeltasks,num_pe,npes_ens
        WRITE (*,'(5x, a)') 'ERROR: Total number of processes is not consistent.'
        CALL abort_parallel()
     END IF consist1
