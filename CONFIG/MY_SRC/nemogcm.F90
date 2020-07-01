@@ -87,6 +87,7 @@ MODULE nemogcm
 #if defined key_USE_PDAF
    USE mod_parallel_pdaf, ONLY: filterpe, task_id
    USE mod_init_pdaf, ONLY: init_pdaf
+   USE mod_agrif_pdaf, ONLY: calc_grid_cnst
 #endif 
    USE dom_oce
    USE par_oce
@@ -171,6 +172,7 @@ CONTAINS
 #endif
 
 #if defined key_USE_PDAF
+          IF(lwp) WRITE(*,'(/2x,a)') 'Initialize Assimilation with PDAF'
           CALL init_pdaf()
 #endif
 
@@ -513,6 +515,10 @@ numnam_ref=numnam_cfg	! set numnam_ref to numnam_cfg to provide the right unit f
       IF( lk_asminc     )   CALL asm_inc_init   ! Initialize assimilation increments
       IF(lwp) WRITE(numout,*) 'Euler time step switch is ', neuler
       !
+#if defined key_USE_PDAF
+      ! Compute constants from NEMO, AGRIF grids and store in PDAF
+      CALL calc_grid_cnst()
+#endif
    END SUBROUTINE nemo_init
 
 
