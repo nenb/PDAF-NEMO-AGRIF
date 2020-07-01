@@ -47,6 +47,7 @@
 %FFTW_INC            -I%FFTW_HOME/include
 %FFTW_LIB            -L%FFTW_HOME/lib
 
+%PDAF_INC            -I%PDAF_HOME/include
 %PDAF_LIB            -L%PDAF_HOME/lib -lpdaf-d
 
 #OASIS_INC           -I%OASIS_HOME/build/lib/mct -I%OASIS_HOME/build/lib/psmile.MPI1
@@ -69,7 +70,7 @@
 %AR                  ar 
 %ARFLAGS             -r
 %MK                  gmake
-%USER_INC            %XIOS_INC %NCDF_INC 
+%USER_INC            %XIOS_INC %NCDF_INC %PDAF_INC
 %USER_LIB            %XIOS_LIB %PDAF_LIB %NCDF_LIB 
 
 #USER_INC            %XIOS_INC %OASIS_INC %NCDF_INC %LINK_LIBS %FFTW_INC
