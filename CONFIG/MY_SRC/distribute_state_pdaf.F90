@@ -34,8 +34,8 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 !
 ! !USES:
   USE mod_kind_pdaf
-  USE mod_statevector_pdaf, &
-       ONLY: distrib2d_statevector, distrib3d_statevector
+  USE mod_parallel_pdaf, &
+         ONLY: mype_ens
 
   IMPLICIT NONE
   
@@ -54,7 +54,16 @@ SUBROUTINE distribute_state_pdaf(dim_p, state_p)
 ! *** Initialize model fields from state  ***
 !********************************************
 
-  CALL distrib2d_statevector(dim_p, state_p)
-  CALL distrib3d_statevector(dim_p, state_p)
+  ! ***************** WARNING ************************
+  !
+  ! This subroutine is empty as distribution is done
+  ! in step.F90. Refer to this subroutine for details.
+  !
+  ! *************************************************
+
+  IF (mype_ens == 0) THEN
+       WRITE (*,'(/1x,a)') 'WARNING: distribute_state_pdaf is empty.'
+    END IF
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE distribute_state_pdaf

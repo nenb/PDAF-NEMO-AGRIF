@@ -31,11 +31,11 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 ! !USES:
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
-       ONLY: delt_obs
+       ONLY: delt_obs, child_dt_fac
   USE mod_parallel_pdaf, &
        ONLY: mype_ens
   USE mod_agrif_pdaf, &
-       ONLY: nitend
+       ONLY: nitend_par
 
   IMPLICIT NONE
 
@@ -56,9 +56,9 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 
   time = 0.0          ! Not used in this implementation
 
-  IF (stepnow + nsteps <= nitend) THEN
+  IF (stepnow + nsteps <= (child_dt_fac+1)*nitend_par) THEN
      ! *** During the assimilation process ***
-     nsteps = delt_obs   ! This assumes a constant time step interval
+     nsteps = (child_dt_fac+1)*delt_obs   ! This assumes a constant time step interval
      doexit = 0          ! Not used in this implementation
 
      IF (mype_ens == 0) WRITE (*, '(i7, 3x, a, i7)') &

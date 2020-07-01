@@ -36,7 +36,10 @@ MODULE step
     USE mod_parallel_pdaf, &
          ONLY: mype_ens, task_id
    USE mod_assimilation_pdaf, &
-        ONLY: delt_obs, euler_flag, assimilate_pdaf
+        ONLY: delt_obs, euler_flag, assimilate_pdaf, child_dt_fac, &
+        state_p_pointer
+   USE mod_agrif_pdaf, &
+        ONLY: distrib2d_statevector, distrib3d_statevector, update_halo
 #endif
 
    IMPLICIT NONE
@@ -122,6 +125,35 @@ CONTAINS
       IF( kstp /= nit000 )   CALL day( kstp )         ! Calendar (day was already called at nit000 in day_init)
                              CALL iom_setkt( kstp - nit000 + 1,      cxios_context          )   ! tell iom we are at time step kstp
       IF( ln_crs     )       CALL iom_setkt( kstp - nit000 + 1, TRIM(cxios_context)//"_crs" )   ! tell iom we are at time step kstp
+
+#if defined key_USE_PDAF
+      ! ********************************************************************
+      ! ****************** PDAF distribution of statevector ****************
+      ! ********************************************************************
+      !
+      ! Solution adopted is to distribute variables in two stages: i) first
+      ! distribute on the parent grid and ii) second distribute on the child
+      ! grid. If no child grid exists then only the first step is done.
+      ! Because distribution is done here, the distribute_state call-back
+      ! routine from PDAF is now redundant.
+      ! NOTE: The distribution *MUST* be done after PDAF_get_state() has been
+      ! called in subroutine assimilate_pdaf(). This is because various MPI
+      ! communications are necessary to transfer the analysis data from the
+      ! filter PE to the model PE prior to distribution.
+      !
+      IF ( MOD(kstp-nit000+1,delt_obs) == 1 .AND. Agrif_Root() ) THEN
+         CALL distrib2d_statevector(state_p_pointer, 'par')
+         CALL distrib3d_statevector(state_p_pointer, 'par')
+         CALL update_halo('par')
+      END IF
+# if defined key_agrif
+      IF ( MOD(kstp-nit000+1,delt_obs*child_dt_fac) == 1 .AND. (.NOT. Agrif_Root()) ) THEN
+         CALL distrib2d_statevector(state_p_pointer, 'child')
+         CALL distrib3d_statevector(state_p_pointer, 'child')
+         CALL update_halo('child')
+      ENDIF
+# endif
+#endif
 
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
       ! Update data, open boundaries, surface boundary condition (including sea-ice)
@@ -414,15 +446,15 @@ CONTAINS
       !
       ! Call PDAF library to check whether assimilation step
 #if defined key_USE_PDAF
-      CALL assimilate_pdaf()
-      ! If assimilation step performed, force Euler timestep for next step
-      IF ( (kstp .NE. nit000) .AND. MOD(kstp-nit000+1,delt_obs) == 0 ) THEN
-         euler_flag = .TRUE.
-         IF (mype_ens == 0) WRITE (*,'(/1x,a,10i)') &
-              'Euler timestep activated for step:', kstp+1
-      ELSE
-         euler_flag = .FALSE.
-      END IF
+       CALL assimilate_pdaf()
+       ! If assimilation step performed, force Euler timestep for next step
+       IF ( Agrif_Root() .AND. (MOD(kstp-nit000+1,delt_obs) == 0) ) THEN
+          euler_flag = .TRUE.
+          IF (mype_ens == 0) WRITE (*,'(/1x,a,10i)') &
+               'Euler timestep activated for step:', kstp+1
+       ELSE
+          euler_flag = .FALSE.
+       END IF
 #endif
 
    END SUBROUTINE stp

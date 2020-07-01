@@ -28,8 +28,13 @@ MODULE mod_assimilation_pdaf
 
   ! *** Model- and data specific variables ***
 
+  REAL(pwp), POINTER :: state_p_pointer(:,:) ! Pointer to PDAF state_p array
+  INTEGER :: status_pointer                  ! PDAF state_p pointer status flag
+
   INTEGER :: dim_state           ! Global model state dimension
   INTEGER :: dim_state_p         ! Model state dimension for PE-local domain
+  INTEGER :: dim_state_p_par     ! dim_state_p on parent grid
+  INTEGER :: dim_state_p_child   ! dim_state_p on child grid
 
   INTEGER :: dim_obs_p                    ! Process-local number of observations
   REAL(pwp), ALLOCATABLE    :: obs_p(:)        ! Vector holding process-local observations
@@ -50,9 +55,10 @@ MODULE mod_assimilation_pdaf
   REAL(pwp)    :: model_err_amp ! Amplitude for model error
 
   ! ! Settings for observations - available as command line options
-  INTEGER :: delt_obs      ! time step interval between assimilation steps
-  REAL(pwp)    :: rms_obs       ! RMS error size for observation generation
-  INTEGER :: dim_obs       ! Number of observations
+  INTEGER   :: delt_obs       ! time step interval between assimilation steps
+  INTEGER   :: child_dt_fac   ! time step factor between child and parent grid
+  REAL(pwp) :: rms_obs        ! RMS error size for observation generation
+  INTEGER   :: dim_obs        ! Number of observations
 
   ! ! General control of PDAF - available as command line options
   INTEGER :: screen       ! Control verbosity of PDAF
@@ -152,10 +158,14 @@ MODULE mod_assimilation_pdaf
   !   (0) symmetric square root, (1) Cholesky decomposition
 
   !    ! File input - available as namelist option
-  CHARACTER (len=110) :: istate_fname_t  ! file containing t initial state estimate
-  CHARACTER (len=110) :: istate_fname_u  ! file containing u initial state estimate
-  CHARACTER (len=110) :: istate_fname_v  ! file containing v initial state estimate
-
+  ! Parent grid
+  CHARACTER (len=110) :: istate_fname_t  ! file for t initial state estimate
+  CHARACTER (len=110) :: istate_fname_u  ! file for u initial state estimate
+  CHARACTER (len=110) :: istate_fname_v  ! file for v initial state estimate
+  ! Child grid
+  CHARACTER (len=110) :: istate_fname_t_child  ! file for t initial state estimate
+  CHARACTER (len=110) :: istate_fname_u_child  ! file for u initial state estimate
+  CHARACTER (len=110) :: istate_fname_v_child  ! file for v initial state estimate
   !    ! Other variables - _NOT_ available as command line options!
   INTEGER :: covartype     ! For SEIK: Definition of ensemble covar matrix
   ! (0): Factor (r+1)^-1 (or N^-1)
@@ -198,8 +208,11 @@ CONTAINS
     ! Later revisions - see svn log
     !
     ! !USES:
+    USE mod_kind_pdaf
     USE mod_parallel_pdaf, &     ! Parallelization variables
          ONLY: mype_world, abort_parallel
+    USE mod_agrif_pdaf, &
+         ONLY: fill2d_statevector, fill3d_statevector
 
     IMPLICIT NONE
 
@@ -209,8 +222,8 @@ CONTAINS
     !EOP
 
     ! Local variables
-    INTEGER :: status_pdaf       ! PDAF status flag
-
+    INTEGER :: status_pdaf          ! PDAF status flag
+    INTEGER, SAVE :: fill_cnt = 1   ! Counter to determine whether to fill statevector
 
     ! External subroutines
     EXTERNAL :: collect_state_pdaf, & ! Routine to collect a state vector from model fields
@@ -236,6 +249,34 @@ CONTAINS
          obs_op_f_pdaf, &                ! Obs. operator for full obs. vector for PE-local domain
          init_dim_obs_f_pdaf             ! Get dimension of full obs. vector for PE-local domain
 
+
+    ! **************************************************************************
+    ! ************************** Collect state variables ***********************
+    ! **************************************************************************
+    !
+    ! Solution adopted is to collect variables in two stages: i) first collect
+    ! on the child grid and ii) second collect on the parent grid. If no child
+    ! grid exists then only the second step is done. Because collection is done
+    ! here, the collect_state call-back routine from PDAF is now redundant.
+    !
+    ! **************************************************************************
+    ! **************************************************************************
+
+#if defined key_agrif
+    IF ( fill_cnt == ((child_dt_fac+1)*delt_obs) - 1 ) THEN
+       CALL fill2d_statevector(state_p_pointer, 'child')
+       CALL fill3d_statevector(state_p_pointer, 'child')
+    ENDIF
+#endif
+    IF ( fill_cnt == (child_dt_fac+1)*delt_obs ) THEN
+       CALL fill2d_statevector(state_p_pointer, 'par')
+       CALL fill3d_statevector(state_p_pointer, 'par')
+       ! Reset counter for next assimilation step
+       fill_cnt = 0
+    END IF
+
+    ! Increment counter
+    fill_cnt = fill_cnt+1
 
     ! *********************************
     ! *** Call assimilation routine ***

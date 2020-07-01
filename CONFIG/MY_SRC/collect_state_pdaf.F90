@@ -26,13 +26,10 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! 2013-09 - Lars Nerger - Initial code based on online implementation
 ! Later revisions - see svn log
 !
-! !USES:
+  ! !USES:
   USE mod_kind_pdaf
-  USE mod_statevector_pdaf, &
-       ONLY: fill2d_statevector, fill3d_statevector
-  
   IMPLICIT NONE
-  
+
 ! !ARGUMENTS:
   INTEGER, INTENT(in) :: dim_p           ! PE-local state dimension
   REAL(pwp), INTENT(inout) :: state_p(dim_p)  ! local state vector
@@ -43,14 +40,18 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 ! Call Xfill_statevector
 !EOP
 
-! *** local variables ***
-
 
 ! *************************************************
 ! *** Initialize state vector from model fields ***
 ! *************************************************
 
-  CALL fill2d_statevector(dim_p, state_p)
-  CALL fill3d_statevector(dim_p, state_p)
+  ! ***************** WARNING *********************
+  !
+  ! This subroutine is empty as collection is done
+  ! in assimilate_pdaf. Refer to this subroutine
+  ! for details.
+  !
+  ! ***********************************************
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE collect_state_pdaf
