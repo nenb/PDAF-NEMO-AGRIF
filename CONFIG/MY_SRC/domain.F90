@@ -181,7 +181,7 @@ CONTAINS
       WRITE(cn_ocerst_in,'(a)') TRIM(cn_ocerst_in)//'_'//TRIM(ensstr)
       WRITE(cn_ocerst_indir,'(a)') TRIM(cn_ocerst_in)//'_'//TRIM(ensstr)
       WRITE(cn_ocerst_out,'(a)') TRIM(cn_ocerst_out)//'_'//TRIM(ensstr)
-      WRITE(cn_ocerst_outdir,'(a)') TRIM(cn_ocerst_outdir)//'_'//TRIM(ensstr)
+      !WRITE(cn_ocerst_outdir,'(a)') TRIM(cn_ocerst_outdir)//'_'//TRIM(ensstr)
 #endif
       IF(lwm) WRITE ( numond, namrun )
       !
