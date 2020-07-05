@@ -1,49 +1,61 @@
-!$Id$
-!BOP
-!
-! !ROUTINE: init_dim_l_pdaf --- Set dimension of local model state
-!
-! !INTERFACE:
+!$Id: init_dim_l_pdaf.F90 344 2020-01-21 14:47:57Z lnerger $
+!>  Set dimension of local model state
+!!
+!! User-supplied call-back routine for PDAF.
+!!
+!! Used in the filters: LSEIK/LETKF/LESTKF/LNETF
+!!
+!! The routine is called during analysis step
+!! in PDAF_X_update in the loop over all local
+!! analysis domains. It has to set the dimension
+!! of the local model  state on the current analysis
+!! domain.
+!!
+!! Implementation for the 2D online example
+!! with or without parallelization.
+!!
+!! 2013-02 - Lars Nerger - Initial code
+!! Later revisions - see repository log
+!!
 SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 !$AGRIF_DO_NOT_TREAT
-! !DESCRIPTION:
-! User-supplied routine for PDAF.
-! Used in the filters: LSEIK/LETKF/LESTKF
-!
-! The routine is called during analysis step
-! in the loop over all local analysis domain.
-! It has to set the dimension of local model 
-! state on the current analysis domain.
-!
-! The routine is called by each filter process.
-!
-! !REVISION HISTORY:
-! 2005-09 - Lars Nerger - Initial code
-! Later revisions - see svn log
-!
-! !USES:
+  USE mod_assimilation_pdaf, &      ! Coordinates of local analysis domain
+       ONLY: coords_l
+  USE mod_parallel_pdaf, &     ! assimilation parallelization variables
+       ONLY: mype_filter
+
   IMPLICIT NONE
 
-! !ARGUMENTS:
-  INTEGER, INTENT(in)  :: step     ! Current time step
-  INTEGER, INTENT(in)  :: domain_p ! Current local analysis domain
-  INTEGER, INTENT(out) :: dim_l    ! Local state dimension
+! *** Arguments ***
+  INTEGER, INTENT(in)  :: step     !< Current time step
+  INTEGER, INTENT(in)  :: domain_p !< Current local analysis domain
+  INTEGER, INTENT(out) :: dim_l    !< Local state dimension
 
-! !CALLING SEQUENCE:
-! Called by: PDAF_lseik_update   (as U_init_dim_l)
-! Called by: PDAF_lestkf_update  (as U_init_dim_l)
-! Called by: PDAF_letkf_update   (as U_init_dim_l)
-! Called by: PDAF_lnetf_update   (as U_init_dim_l)
-!EOP
+! *** local variables ***
+  INTEGER :: i                       ! Counters
+  INTEGER :: off_p                   ! Process-local offset in global state vector
 
 
 ! ****************************************
 ! *** Initialize local state dimension ***
 ! ****************************************
+  
+  dim_l = 1
 
-  ! Template reminder - delete when implementing functionality
-  WRITE (*,*) 'TEMPLATE init_dim_l_pdaf.F90: Set local state dimension here!'
 
-!   dim_l = ??
+! **********************************************
+! *** Initialize coordinates of local domain ***
+! **********************************************
+
+!!$  ! Coordinates are defined using T longitude/latitude grid values
+!!$
+!!$  ! First, compute (i,j) grid coordinates of local domain
+!!$  j = INT( CEILING(REAL(domain_p)/REAL(nx_global)) )
+!!$  i = domain_p - (j-1)*(nx_global)
+!!$
+!!$  ! Now, convert to T longitude/latitude grid values.
+!!$  ! NOTE: tlon and tlat are in radians, and there are ghost cells.
+!!$  coords_l(1)=tlon(i+1,j+1,1)
+!!$  coords_l(2)=tlat(i+1,j+1,1)
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_l_pdaf

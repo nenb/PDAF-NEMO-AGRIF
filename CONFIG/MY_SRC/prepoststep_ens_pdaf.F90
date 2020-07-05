@@ -447,5 +447,9 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
 
   ! Tidy up statistics
   DEALLOCATE(hist_true, hist_mean)
+
+  ! Deallocate observation arrays
+  CALL deallocate_obs_pdafomi(step)
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE prepoststep_ens_pdaf

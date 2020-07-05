@@ -34,7 +34,7 @@
 %HDF5_HOME           $HDF5_DIR
 %FFTW_HOME           /opt/cray/fftw/3.3.4.11/ivybridge
 %XIOS_HOME           /work/n02/n02/nenb/XIOS_2
-%PDAF_HOME           /work/n02/n02/nenb/NEMO_PDAFV115/PDAF
+%PDAF_HOME           /work/n02/n02/nenb/NEMO_PDAFV115/PDAF_OMI1.1
 
 #OASIS_HOME
 
