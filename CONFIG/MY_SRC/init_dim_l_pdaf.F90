@@ -21,8 +21,8 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 !$AGRIF_DO_NOT_TREAT
   USE mod_assimilation_pdaf, &      ! Coordinates of local analysis domain
        ONLY: coords_l
-  USE mod_parallel_pdaf, &     ! assimilation parallelization variables
-       ONLY: mype_filter
+  USE mod_statevector_pdaf, &
+       ONLY: mpi_subd_vert_child, mpi_subd_vert_par
 
   IMPLICIT NONE
 
@@ -39,9 +39,14 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 ! ****************************************
 ! *** Initialize local state dimension ***
 ! ****************************************
-  
-  dim_l = 1
 
+  ! Total dimension is sum of number of 2D state variables plus (number
+  ! of 3D variables * number of vertical points) on both parent grid
+  ! and child grid (if AGRIF used).
+  dim_l = 1 + (4*mpi_subd_vert_par)
+#if defined key_agrif
+  dim_l = dim_l + 1 + (4*mpi_subd_vert_child)
+#endif
 
 ! **********************************************
 ! *** Initialize coordinates of local domain ***
@@ -57,5 +62,6 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 !!$  ! NOTE: tlon and tlat are in radians, and there are ghost cells.
 !!$  coords_l(1)=tlon(i+1,j+1,1)
 !!$  coords_l(2)=tlat(i+1,j+1,1)
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_l_pdaf

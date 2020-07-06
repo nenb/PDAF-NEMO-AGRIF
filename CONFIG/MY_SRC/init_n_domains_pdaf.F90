@@ -20,8 +20,9 @@
 !!
 SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
 !$AGRIF_DO_NOT_TREAT
-  USE mod_assimilation_pdaf, &   ! Assimilation variables
-       ONLY: dim_state_p
+  USE mod_statevector_pdaf, &   ! Assimilation variables
+       ONLY: mpi_subd_lon_child, mpi_subd_lon_par, mpi_subd_lat_child, &
+       mpi_subd_lat_par
 
   IMPLICIT NONE
 
@@ -33,8 +34,13 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
 ! ************************************
 ! *** Initialize number of domains ***
 ! ************************************
-  
-  ! Here simply the state dimension
-  n_domains_p = dim_state_p
+
+  ! Use horizontal localization, hence number of domains corresponds to
+  ! number of (x,y) points on parent grid plus child grid (if AGRIF used).
+  n_domains_p = (mpi_subd_lon_par*mpi_subd_lat_par)
+#if defined key_agrif
+  n_domains_p = n_domains_p +  (mpi_subd_lon_child*mpi_subd_lat_child)
+#endif
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_n_domains_pdaf

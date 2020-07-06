@@ -6,15 +6,10 @@
 !!
 SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 !$AGRIF_DO_NOT_TREAT
-  ! Include PDAFomi function
-  USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
-  ! Include observation types
-  USE mod_obs_A_pdafomi, ONLY: obs_A => thisobs, obs_A_l => thisobs_l
-  USE mod_obs_B_pdafomi, ONLY: obs_B => thisobs, obs_B_l => thisobs_l
 
-  ! Include localization radius and local coordinates
-  USE mod_assimilation_pdaf, &
-       ONLY: local_range, coords_l
+  ! Include functions for different observations
+  USE mod_obs_A_pdafomi, ONLY: init_dim_obs_l_A
+  USE mod_obs_B_pdafomi, ONLY: init_dim_obs_l_B
 
   IMPLICIT NONE
 
@@ -40,12 +35,11 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 
   ! Call init_dim_obs_l specific for each observation
   ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-  CALL PDAFomi_init_dim_obs_l(obs_A_l, obs_A, coords_l, local_range, dim_obs_l_A, &
-       offset_obs_l, offset_obs_f)
-  CALL PDAFomi_init_dim_obs_l(obs_B_l, obs_B, coords_l, local_range, dim_obs_l_B, &
-       offset_obs_l, offset_obs_f)
+  CALL init_dim_obs_l_A(domain_p, step, dim_obs_f, dim_obs_l_A, offset_obs_l, offset_obs_f)
+  CALL init_dim_obs_l_B(domain_p, step, dim_obs_f, dim_obs_l_B, offset_obs_l, offset_obs_f)
 
   ! Compute overall local observation dimension
   dim_obs_l = dim_obs_l_A + dim_obs_l_B
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_obs_l_pdafomi

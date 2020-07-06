@@ -1,4 +1,4 @@
-!$Id: obs_A_pdafomi.F90 464 2020-05-28 10:19:36Z lnerger $
+!$Id: obs_A_pdafomi.F90 496 2020-06-09 15:26:17Z lnerger $
 !> PDAF-OMI observation module for type A observations
 !!
 !! This module handles operations for one data type (called 'module-type' below):
@@ -42,6 +42,7 @@
 !!
 MODULE mod_obs_a_pdafomi
 !$AGRIF_DO_NOT_TREAT
+
   USE mod_parallel_pdaf, &
        ONLY: mype_filter    ! Rank of filter process
   USE PDAFomi, &
@@ -51,8 +52,8 @@ MODULE mod_obs_a_pdafomi
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_A= .FALSE. !< Whether to assimilate this data type
-  REAL    :: rms_obs_A        !< Observation error standard deviation (for constant errors)
+  LOGICAL :: assim_A        !< Whether to assimilate this data type
+  REAL    :: rms_obs_A      !< Observation error standard deviation (for constant errors)
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
@@ -105,8 +106,8 @@ MODULE mod_obs_a_pdafomi
 
 ! Declare instances of observation data types used here
 ! We use generic names here, but one could renamed the variables
-  type(obs_f), public :: thisobs      ! full observation
-  type(obs_l), public :: thisobs_l    ! local observation
+  TYPE(obs_f), TARGET, PUBLIC :: thisobs      ! full observation
+  TYPE(obs_l), TARGET, PUBLIC :: thisobs_l    ! local observation
 
 !$OMP THREADPRIVATE(thisobs_l)
 
@@ -179,66 +180,136 @@ CONTAINS
 ! *** Initialize full observation dimension ***
 ! *********************************************
 
-    IF (mype_filter==0) &
-         WRITE (*,'(8x,a)') 'Assimilate observations - obs type A'
-
-    ! Store whether to assimilate this observation type (used in routines below)
-    IF (assim_A) thisobs%doassim = 1
-
-    ! Specify type of distance computation
-    thisobs%disttype = 0   ! 0=Cartesian
-
-    ! Number of coordinates used for distance computation
-    ! The distance compution starts from the first row
-    thisobs%ncoord = 2
-
-
-! **********************************
-! *** Read PE-local observations ***
-! **********************************
-
-    
-
-
-! ***********************************************************
-! *** Count available observations for the process domain ***
-! *** and initialize index and coordinate arrays.         ***
-! ***********************************************************
-
-    
-
-
-! ****************************************************************
-! *** Define observation errors for process-local observations ***
-! ****************************************************************
-
-
-
-
-! ****************************************
-! *** Gather global observation arrays ***
-! ****************************************
-
-
-
-
-! *********************************************************
-! *** For twin experiment: Read synthetic observations  ***
-! *********************************************************
-
-!     IF (twin_experiment .AND. filtertype/=11) THEN
-!        CALL read_syn_obs(file_syntobs_TYPE, dim_obs_f, thisobs%obs_f, 0, 1-mype_filter)
-!     END IF
-
-
-! ********************
-! *** Finishing up ***
-! ********************
-
- 
-
-    ! Arrays in THISOBS have to be deallocated after the analysis step
-    ! by a call to deallocate_obs() in prepoststep_pdaf.
+!!$    IF (mype_filter==0) &
+!!$         WRITE (*,'(8x,a)') 'Assimilate observations - obs type A'
+!!$
+!!$    ! Store whether to assimilate this observation type (used in routines below)
+!!$    IF (assim_A) thisobs%doassim = 1
+!!$
+!!$    ! Specify type of distance computation
+!!$    thisobs%disttype = 0   ! 0=Cartesian
+!!$
+!!$    ! Number of coordinates used for distance computation
+!!$    ! The distance compution starts from the first row
+!!$    thisobs%ncoord = 2
+!!$
+!!$
+!!$! **********************************
+!!$! *** Read PE-local observations ***
+!!$! **********************************
+!!$
+!!$    ! Read observation field from file
+!!$    ALLOCATE(obs_field(ny, nx))
+!!$
+!!$    IF (step<10) THEN
+!!$       WRITE (stepstr, '(i1)') step
+!!$    ELSE
+!!$       WRITE (stepstr, '(i2)') step
+!!$    END IF
+!!$
+!!$    OPEN (12, file='../inputs_online/obs_step'//TRIM(stepstr)//'.txt', status='old')
+!!$    DO i = 1, ny
+!!$       READ (12, *) obs_field(i, :)
+!!$    END DO
+!!$    CLOSE (12)
+!!$
+!!$    ! Make the observations at (8,5), (12,15) and (4,30) invalid
+!!$    ! They will be used in observation type B
+!!$    obs_field(8, 5) = -1000.0 
+!!$    obs_field(12, 15) = -1000.0 
+!!$    obs_field(4, 30) = -1000.0 
+!!$
+!!$
+!!$! ***********************************************************
+!!$! *** Count available observations for the process domain ***
+!!$! *** and initialize index and coordinate arrays.         ***
+!!$! ***********************************************************
+!!$
+!!$    ! *** Count valid observations that lie within the process sub-domain ***
+!!$
+!!$    ! Get offset of local domain in global domain in x-direction
+!!$    off_nx = 0
+!!$    DO i = 1, mype_filter
+!!$       off_nx = off_nx + nx_p
+!!$    END DO
+!!$
+!!$    ! Count process-local observations
+!!$    cnt_p = 0
+!!$    DO j = 1 + off_nx, nx_p + off_nx
+!!$       DO i= 1, ny
+!!$          IF (obs_field(i,j) > -999.0) cnt_p = cnt_p + 1
+!!$       END DO
+!!$    END DO
+!!$
+!!$    ! Set number of local observations
+!!$    dim_obs_p = cnt_p
+!!$
+!!$
+!!$    ! *** Initialize vector of observations on the process sub-domain ***
+!!$    ! *** Initialize coordinate array of observations on the process sub-domain ***
+!!$
+!!$    ! Allocate process-local observation arrays
+!!$    ALLOCATE(obs_p(dim_obs_p))
+!!$    ALLOCATE(ivar_obs_p(dim_obs_p))
+!!$    ALLOCATE(ocoord_p(2, dim_obs_p))
+!!$
+!!$    ! Allocate process-local index array
+!!$    ! This array has a many rows as required for the observation operator
+!!$    ! 1 if observations are at grid points; >1 if interpolation is required
+!!$    ALLOCATE(thisobs%id_obs_p(1, dim_obs_p))
+!!$
+!!$    cnt_p = 0
+!!$    cnt0_p = 0
+!!$    DO j = 1 + off_nx, nx_p + off_nx
+!!$       DO i= 1, ny
+!!$          cnt0_p = cnt0_p + 1
+!!$          IF (obs_field(i,j) > -999.0) THEN
+!!$             cnt_p = cnt_p + 1
+!!$             thisobs%id_obs_p(1, cnt_p) = cnt0_p
+!!$             obs_p(cnt_p) = obs_field(i, j)
+!!$             ocoord_p(1, cnt_p) = REAL(j)
+!!$             ocoord_p(2, cnt_p) = REAL(i)
+!!$          END IF
+!!$       END DO
+!!$    END DO
+!!$
+!!$
+!!$! ****************************************************************
+!!$! *** Define observation errors for process-local observations ***
+!!$! ****************************************************************
+!!$
+!!$    ! *** Set inverse observation error variances ***
+!!$
+!!$    ivar_obs_p(:) = 1.0 / (rms_obs_A*rms_obs_A)
+!!$
+!!$
+!!$! ****************************************
+!!$! *** Gather global observation arrays ***
+!!$! ****************************************
+!!$
+!!$    CALL PDAFomi_gather_obs_f(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
+!!$         thisobs%ncoord, local_range, dim_obs_f)
+!!$
+!!$
+!!$! *********************************************************
+!!$! *** For twin experiment: Read synthetic observations  ***
+!!$! *********************************************************
+!!$
+!!$!     IF (twin_experiment .AND. filtertype/=11) THEN
+!!$!        CALL read_syn_obs(file_syntobs_TYPE, dim_obs_f, thisobs%obs_f, 0, 1-mype_filter)
+!!$!     END IF
+!!$
+!!$
+!!$! ********************
+!!$! *** Finishing up ***
+!!$! ********************
+!!$
+!!$    ! Deallocate all local arrays
+!!$    DEALLOCATE(obs_field)
+!!$    DEALLOCATE(obs_p, ocoord_p, ivar_obs_p)
+!!$
+!!$    ! Arrays in THISOBS have to be deallocated after the analysis step
+!!$    ! by a call to deallocate_obs() in prepoststep_pdaf.
 
   END SUBROUTINE init_dim_obs_f_A
 
@@ -292,5 +363,55 @@ CONTAINS
     END IF
 
   END SUBROUTINE obs_op_f_A
+
+
+
+!-------------------------------------------------------------------------------
+!> Initialize local information on the module-type observation
+!!
+!! The routine is called during the loop over all local
+!! analysis domains. It has to initialize the information
+!! about local observations of the module type. It returns
+!! number of local observations of the module type for the
+!! current local analysis domain in DIM_OBS_L and the full
+!! and local offsets of the observation in the overall
+!! observation vector.
+!!
+!! This routine calls the routine PDAFomi_init_dim_obs_l
+!! for each observation type. The call allows to specify a
+!! different localization radius and localization functions
+!! for each observation type and  local analysis domain.
+!!
+  SUBROUTINE init_dim_obs_l_A(domain_p, step, dim_obs_f, dim_obs_l, &
+       off_obs_l, off_obs_f)
+
+    ! Include PDAFomi function
+    USE PDAFomi, ONLY: PDAFomi_init_dim_obs_l
+
+    ! Include localization radius and local coordinates
+    USE mod_assimilation_pdaf, &   
+         ONLY: coords_l, local_range, locweight, srange
+
+    IMPLICIT NONE
+
+! *** Arguments ***
+    INTEGER, INTENT(in)  :: domain_p     !< Index of current local analysis domain
+    INTEGER, INTENT(in)  :: step         !< Current time step
+    INTEGER, INTENT(in)  :: dim_obs_f    !< Full dimension of observation vector
+    INTEGER, INTENT(out) :: dim_obs_l    !< Local dimension of observation vector
+    INTEGER, INTENT(inout) :: off_obs_l  !< Offset in local observation vector
+    INTEGER, INTENT(inout) :: off_obs_f  !< Offset in full observation vector
+
+
+! **********************************************
+! *** Initialize local observation dimension ***
+! **********************************************
+
+    CALL PDAFomi_init_dim_obs_l(thisobs_l, thisobs, coords_l, &
+         locweight, local_range, srange, &
+         dim_obs_l, off_obs_l, off_obs_f)
+
+  END SUBROUTINE init_dim_obs_l_A
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_obs_a_pdafomi
