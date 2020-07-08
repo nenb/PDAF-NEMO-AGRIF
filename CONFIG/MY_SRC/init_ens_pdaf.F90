@@ -88,7 +88,8 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 
   ! Compute weighting factor for ensemble perturbations
   DO i = 1, dim_ens
-     wght(i)= (REAL(dim_ens) - dimens_mean - ABS(REAL(i) - 1.0 - dimens_mean))
+     !wght(i)= (REAL(dim_ens) - dimens_mean - ABS(REAL(i) - 1.0 - dimens_mean))
+     wght(i) = 1.0_pwp
   END DO
 
   IF(screen > 1 ) THEN
