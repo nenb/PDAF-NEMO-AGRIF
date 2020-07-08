@@ -34,7 +34,7 @@ MODULE step
    USE iom
 #if defined key_USE_PDAF
     USE mod_parallel_pdaf, &
-         ONLY: mype_ens, task_id
+         ONLY: mype_ens, task_id, abort_parallel
    USE mod_assimilation_pdaf, &
         ONLY: delt_obs, euler_flag, assimilate_pdaf, child_dt_fac, &
         state_p_pointer
@@ -419,6 +419,7 @@ CONTAINS
                                WRITE(ensstr,'(i3.3)') task_id
                                WRITE(fname,'(a)') 'output_'//TRIM(ensstr)//'.abort'
                                CALL dia_wri_state( fname, kstp )
+                               CALL abort_parallel() ! Abort remaining ensemble simulations
 #else
                                CALL dia_wri_state( 'output.abort', kstp )
 #endif
