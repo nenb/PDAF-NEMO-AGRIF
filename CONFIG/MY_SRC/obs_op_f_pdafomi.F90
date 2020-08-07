@@ -6,8 +6,9 @@
 !!
 SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 !$AGRIF_DO_NOT_TREAT
+
   ! Include functions for different observations
-  USE mod_obs_A_pdafomi, ONLY: obs_op_f_A
+  USE mod_obs_ssh_NEMO_pdafomi, ONLY: obs_op_f_ssh_NEMO
   USE mod_obs_B_pdafomi, ONLY: obs_op_f_B
 
   IMPLICIT NONE
@@ -32,7 +33,8 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
 
   ! The order of the calls determines how the different observations
   ! are ordered in the full state vector
-  CALL obs_op_f_A(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
+  CALL obs_op_f_ssh_NEMO(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
   CALL obs_op_f_B(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE obs_op_f_pdafomi

@@ -88,6 +88,7 @@ MODULE nemogcm
    USE mod_parallel_pdaf, ONLY: filterpe, task_id
    USE mod_init_pdaf, ONLY: init_pdaf
    USE mod_agrif_pdaf, ONLY: calc_grid_cnst
+   USE mod_util_pdaf, ONLY: cleanup_pdaf, finalize_pdaf
 #endif 
    USE dom_oce
    USE par_oce
@@ -187,6 +188,10 @@ CONTAINS
          END DO
 #endif
 
+#if defined key_USE_PDAF
+           CALL cleanup_pdaf()
+#endif
+
       IF( lk_diaobs   )   CALL dia_obs_wri
       !
       IF( ln_icebergs )   CALL icb_end( nitend )
@@ -215,6 +220,11 @@ CONTAINS
       CALL nemo_closefile
 
 ! FUS end: fix to provide timing for base and nest
+
+! PDAF timing and clean-up
+#if defined key_USE_PDAF
+      CALL finalize_pdaf()
+#endif
 
 #if defined key_iomput
       CALL xios_finalize                ! end mpp communications with xios

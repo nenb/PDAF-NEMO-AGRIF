@@ -3,6 +3,7 @@
 !
 ! !MODULE:
 MODULE mod_parallel_pdaf
+
 !$AGRIF_DO_NOT_TREAT
 ! !DESCRIPTION:
 ! This modules provides variables for the MPI parallelization
@@ -42,6 +43,7 @@ MODULE mod_parallel_pdaf
   INTEGER :: COMM_filter ! MPI communicator for filter PEs 
   INTEGER :: mype_filter, npes_filter ! # PEs and PE rank in COMM_filter
   INTEGER :: COMM_couple ! MPI communicator for coupling filter and model
+  INTEGER :: mype_couple, npes_couple ! Rank and size in COMM_couple
   LOGICAL :: modelpe     ! Whether we are on a PE in a COMM_model
   LOGICAL :: filterpe    ! Whether we are on a PE in a COMM_filter
   INTEGER :: task_id     ! Index of my model task (1,...,n_modeltasks)
@@ -58,9 +60,18 @@ MODULE mod_parallel_pdaf
   INTEGER :: jpiglo_child
   INTEGER :: jpjglo_child
   INTEGER :: jpk_child
+  INTEGER :: jpnij_par
+  INTEGER :: jpnij_child
+  INTEGER :: jpnj_par
+  INTEGER :: jpnj_child
+  INTEGER :: jpni_par
+  INTEGER :: jpni_child
+  INTEGER :: jpi_par
+  INTEGER :: jpj_par
+  INTEGER :: jpi_child
+  INTEGER :: jpj_child
 
   ! MPI decomposition constants for different grids
-  INTEGER :: jpnij_par
   INTEGER :: nldi_par
   INTEGER :: nlei_par
   INTEGER :: nldj_par
@@ -73,6 +84,10 @@ MODULE mod_parallel_pdaf
   INTEGER :: njmpp_par
   INTEGER :: nimpp_child
   INTEGER :: njmpp_child
+
+  ! Number of MPI PE
+  INTEGER :: narea_par
+  INTEGER :: narea_child
 !EOP
   
 CONTAINS
@@ -220,7 +235,6 @@ CONTAINS
 
 ! ! local variables
     INTEGER :: i, j               ! Counters
-    INTEGER :: mype_couple, npes_couple ! Rank and size in COMM_couple
     INTEGER :: pe_index           ! Index of PE
     INTEGER :: my_color, color_couple ! Variables for communicator-splitting 
     CHARACTER(len=100) :: nmlfile   ! name of namelist file
@@ -412,6 +426,84 @@ CONTAINS
 
    END SUBROUTINE calc_global_dim
 
+   SUBROUTINE mpi_send_halo(halo_p, grid)
+
+     ! !DESCRIPTION:
+     ! Sends the PE-local model halo values to PE with rank 0 on COMM_Couple.
+
+     ! !USES:
+     USE mod_kind_pdaf
+    IMPLICIT NONE
+
+    ! !ARGUMENTS:
+    REAL(pwp), INTENT(inout) :: halo_p(:,:,:)  ! PE-local model halo
+    CHARACTER(len=*), INTENT(in) :: grid       ! Flag for parent/child grid
+
+    ! ! local variables
+    INTEGER :: halo_dim                     ! Number of halo points required
+    INTEGER :: domain                       ! Counters
+    INTEGER :: MPIerr                       ! MPI error status
+    INTEGER :: MPIstatus(MPI_STATUS_SIZE)   ! MPI status array
+    REAL(pwp), ALLOCATABLE :: vec_send(:)  ! Vector for sending halo values
+    REAL(pwp), ALLOCATABLE :: vec_recv(:)  ! Vector for receiving halo values
+
+
+! ***********
+! Parent grid
+! ***********
+    IF (grid=='par') THEN
+       ! Crude method for calculating number of halo points.
+       halo_dim = SIZE(halo_p(:,1,1))
+       ALLOCATE(vec_send(halo_dim))
+       ALLOCATE(vec_recv(halo_dim))
+
+       ! *** Send SSH halo points on couple-PEs with rank > 0 ***
+       IF (mype_couple /= 0) THEN
+          ! SSH : 1
+          vec_send=halo_p(:,mype_couple+1,1)
+          CALL MPI_Send(vec_send(1), halo_dim, MPI_DOUBLE_PRECISION, 0, &
+               1, COMM_couple, MPIerr)
+       ELSE
+          ! *** Receive SSH halo points on couple-PE with rank = 0 ***
+          DO domain = 1, npes_couple-1
+             CALL MPI_Recv(vec_recv(1), halo_dim, MPI_DOUBLE_PRECISION, &
+                  domain, 1, COMM_couple, MPIstatus, MPIerr)
+             halo_p(:,domain+1,1)=vec_recv
+          END DO
+       END IF
+
+       DEALLOCATE(vec_send, vec_recv)
+
+! **********
+! Child grid
+! **********
+    ELSE IF (grid=='child') THEN
+       ! Crude method for calculating number of halo points.
+       halo_dim = SIZE(halo_p(:,1,1))
+       ALLOCATE(vec_send(halo_dim))
+       ALLOCATE(vec_recv(halo_dim))
+
+       ! *** Send SSH halo points on couple-PEs with rank > 0 ***
+       IF (mype_couple /= 0) THEN
+          ! SSH : 1
+          vec_send=halo_p(:,mype_couple+1,1)
+          CALL MPI_Send(vec_send(1), halo_dim, MPI_DOUBLE_PRECISION, 0, &
+               1, COMM_couple, MPIerr)
+       ELSE
+          ! *** Receive SSH halo points on couple-PE with rank = 0 ***
+          DO domain = 1, npes_couple-1
+             CALL MPI_Recv(vec_recv(1), halo_dim, MPI_DOUBLE_PRECISION, &
+                  domain, 1, COMM_couple, MPIstatus, MPIerr)
+             halo_p(:,domain+1,1)=vec_recv
+          END DO
+       END IF
+
+       DEALLOCATE(vec_send, vec_recv)
+
+    END IF
+
+  END SUBROUTINE mpi_send_halo
+
    SUBROUTINE gather_ens(rank, dimx_local, dimy_local, dimz_local, dimx_global, &
         dimy_global, dimz_global, dim_local, offset, dim_ens, ens_local, ens)
 
@@ -518,5 +610,6 @@ CONTAINS
      END IF mype
 
    END SUBROUTINE gather_ens
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_parallel_pdaf

@@ -32,14 +32,24 @@ CONTAINS
          COMM_couple, COMM_ensemble, mype_ens, filterpe, abort_parallel
     USE mod_assimilation_pdaf, &
          ONLY: dim_state_p, dim_state_p_par, dim_state_p_child, screen,&
-         filtertype, subtype, dim_ens, rms_obs, incremental, covartype, &
+         filtertype, subtype, dim_ens, incremental, covartype, &
          type_forget, forget, rank_analysis_enkf, locweight, local_range, &
          srange, type_trans, type_sqrt, delt_obs, state_p_pointer, &
          status_pointer, child_dt_fac
     USE mod_statevector_pdaf, ONLY: calc_statevector_dim, calc_offset, &
-         calc_dim
+         calc_dim, mpi_subd_lat_child, mpi_subd_lon_child, mpi_subd_lat_par, &
+         mpi_subd_lon_par, var2d_p_offset_child, var2d_p_offset_par, &
+         var3d_p_offset_child, var3d_p_offset_par, halo_2d_par, halo_2d_child
     USE mod_util_pdaf, ONLY: init_info_pdaf, read_config_pdaf
     USE PDAF_interfaces_module, ONLY: PDAF_set_ens_pointer
+    USE mod_obs_ssh_NEMO_pdafomi, &
+         ONLY: assim_ssh_NEMO, rms_ssh_NEMO, file_ssh_NEMO, &
+         twin_exp_ssh_NEMO, noise_amp_ssh_NEMO
+    USE mod_agrif_pdaf, &
+         ONLY: lowlim_ssh_NEMO, upplim_ssh_NEMO, lowlim_sal_NEMO, &
+         upplim_sal_NEMO, lowlim_temp_NEMO, upplim_temp_NEMO, &
+         lowlim_uvel_NEMO, upplim_uvel_NEMO, lowlim_vvel_NEMO, &
+         upplim_vvel_NEMO
 
     IMPLICIT NONE
 
@@ -57,6 +67,7 @@ CONTAINS
     INTEGER :: status_pdaf       ! PDAF status flag
     INTEGER :: doexit, steps     ! Not used in this implementation
     REAL(pwp)    :: timenow           ! Not used in this implementation
+    INTEGER :: halo_dim          ! Number of halo points required
 
 ! External subroutines
     EXTERNAL :: init_ens_pdaf            ! Ensemble initialization
@@ -67,9 +78,9 @@ CONTAINS
          prepoststep_ens_pdaf            ! User supplied pre/poststep routine
 
 
-    ! ***************************
-    ! ***   Initialize PDAF   ***
-    ! ***************************
+! ***************************
+! ***   Initialize PDAF   ***
+! ***************************
 
     IF (mype_ens == 0) THEN
        WRITE (*,'(/1x,a)') 'INITIALIZE PDAF - ONLINE MODE'
@@ -83,9 +94,9 @@ CONTAINS
     ! If only using NEMO (parent) grid, dim_state_p_child is set to 0.
     CALL calc_statevector_dim(dim_state_p, dim_state_p_par, dim_state_p_child)
 
-    ! **********************************************************
-    ! ***   CONTROL OF PDAF - used in call to PDAF_init      ***
-    ! **********************************************************
+! **********************************************************
+! ***   CONTROL OF PDAF - used in call to PDAF_init      ***
+! **********************************************************
 
     ! *** IO options ***
     screen      = 2  ! Write screen output (1) for output, (2) add timings
@@ -132,17 +143,15 @@ CONTAINS
     ! in analysis of EnKF; (0) for analysis w/o eigendecomposition
 
 
-    ! *********************************************************************
-    ! ***   Settings for analysis steps  - used in call-back routines   ***
-    ! *********************************************************************
+! *********************************************************************
+! ***   Settings for analysis steps  - used in call-back routines   ***
+! *********************************************************************
 
     ! *** Forecast length (time interval between analysis steps) ***
     delt_obs = 24      ! Number of time steps between analysis/assimilation steps
     child_dt_fac = 0   ! Timestep factor between child and parent grid
 
     ! *** specifications for observations ***
-    rms_obs = 0.5    ! Observation error standard deviation
-    ! for the Gaussian distribution 
     ! *** Localization settings
     locweight = 0     ! Type of localizating weighting
     !   (0) constant weight of 1
@@ -153,6 +162,21 @@ CONTAINS
     local_range = 1.0e5  ! Range in grid points for observation domain in local filters
     srange = local_range  ! Support range for 5th-order polynomial
     ! or range for 1/e for exponential weighting
+    assim_ssh_NEMO = .FALSE.      ! Switch for assimilating SSH on NEMO grid
+    rms_ssh_NEMO = 1.0_pwp        ! RMS for SSH on NEMO grid
+    file_ssh_NEMO = ''            ! Switch for assimilating SSH on NEMO grid
+    twin_exp_ssh_NEMO = .FALSE.   ! Switch for twin experiment with SSH on NEMO grid
+    noise_amp_ssh_NEMO = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, NEMO grid)
+    lowlim_ssh_NEMO = -3.0_pwp    ! Lower limit for rejecting SSH on NEMO grid
+    upplim_ssh_NEMO = 3.0_pwp     ! Upper limit for rejecting SSH on NEMO grid
+    lowlim_temp_NEMO = 10.0_pwp   ! Lower limit for rejecting T on NEMO grid
+    upplim_temp_NEMO = 35.0_pwp   ! Upper limit for rejecting T on NEMO grid
+    lowlim_sal_NEMO = 0.0_pwp     ! Lower limit for rejecting S on NEMO grid
+    upplim_sal_NEMO = 45.0_pwp    ! Upper limit for rejecting S on NEMO grid
+    lowlim_uvel_NEMO = -10.0_pwp  ! Lower limit for rejecting U on NEMO grid
+    upplim_uvel_NEMO = 10.0_pwp   ! Upper limit for rejecting U on NEMO grid
+    lowlim_vvel_NEMO = -10.0_pwp  ! Lower limit for rejecting V on NEMO grid
+    upplim_vvel_NEMO = 10.0_pwp   ! Upper limit for rejecting V on NEMO grid
 
     ! *** Read namelist file for PDAF ***
     CALL read_config_pdaf()
@@ -215,17 +239,44 @@ CONTAINS
        CALL abort_parallel()
     END IF
 
+! ****************************************************************
+! *** Initialise arrays for storing NEMO/AGRIF state variables ***
+! ****************************************************************
+
     ! Set pointer to PDAF statevector for access from NEMO/AGRIF
     CALL PDAF_set_ens_pointer(state_p_pointer, status_pointer)
 
-    ! **********************************
-    ! *** Prepare ensemble forecasts ***
-    ! **********************************
+    ! Initialise arrays for storing halo regions for observation
+    ! operator on parent grid.
+    !
+    ! Number of halo points required - see mod_agrif_pdaf for further
+    ! details.
+    halo_dim = mpi_subd_lat_par + mpi_subd_lon_par + 1
+
+    ! Allocate arrays.
+    ALLOCATE(halo_2d_par(halo_dim,n_modeltasks,SIZE(var2d_p_offset_par)))
+
+#if defined key_agrif
+    ! Initialise arrays for storing halo regions for observation
+    ! operator on child grid.
+    !
+    ! Number of halo points required - see mod_agrif_pdaf for further
+    ! details.
+    halo_dim = mpi_subd_lat_child + mpi_subd_lon_child + 1
+
+    ! Allocate arrays.
+    ALLOCATE(halo_2d_child(halo_dim,n_modeltasks,SIZE(var2d_p_offset_child)))
+#endif
+
+! **********************************
+! *** Prepare ensemble forecasts ***
+! **********************************
 
     CALL PDAF_get_state(steps, timenow, doexit, next_observation_pdaf, &
          distribute_state_pdaf, prepoststep_ens_pdaf, status_pdaf)
 
   END SUBROUTINE init_pdaf
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_init_pdaf
 

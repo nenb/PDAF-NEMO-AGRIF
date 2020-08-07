@@ -4,6 +4,7 @@
 ! !MODULE:
 MODULE mod_output_netcdf_pdaf
 !$AGRIF_DO_NOT_TREAT
+
 ! !DESCRIPTION:
 ! This module provides routines to initialize
 ! NetCDF output files for the assimilation
@@ -808,5 +809,6 @@ CONTAINS
     END IF
 
   END SUBROUTINE close_netcdf_asml
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_output_netcdf_pdaf

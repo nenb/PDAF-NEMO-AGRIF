@@ -7,6 +7,7 @@
 SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      state_p, Uinv, ens_p, flag)
 !$AGRIF_DO_NOT_TREAT
+
   ! !DESCRIPTION:
   ! User-supplied routine for PDAF.
   ! Used in the filters: SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -42,7 +43,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
        ONLY: screen, filtertype, subtype, forget, local_range, &
-       locweight, srange, rms_obs, delt_obs, dim_lag, iter, &
+       locweight, srange, delt_obs, dim_lag, iter, &
        output_ssh, output_t, output_s, output_u, output_v, &
        dim_state_p_par, dim_state_p_child
   USE mod_agrif_pdaf, &
@@ -59,6 +60,8 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
   USE mod_output_netcdf_pdaf, &
        ONLY: init_netcdf_asml, write_netcdf_asml, close_netcdf_asml, &
        output_lev
+  USE mod_obs_ssh_NEMO_pdafomi, &
+       ONLY: rms_ssh_NEMO
 
   IMPLICIT NONE
 
@@ -142,7 +145,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            var = 'sossheig'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '2D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
+                locweight, srange, rms_ssh_NEMO, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -152,7 +155,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            var = 'votemper'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
+                locweight, srange, rms_ssh_NEMO, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -162,7 +165,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            var = 'vosaline'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
+                locweight, srange, rms_ssh_NEMO, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -172,7 +175,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            var = 'vozocrtx'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
+                locweight, srange, rms_ssh_NEMO, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
 
@@ -182,7 +185,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
            var = 'vomecrty'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
                 '3D', filtertype, subtype, dim_ens, forget, local_range, &
-                locweight, srange, rms_obs, delt_obs, nitend_par, dim_lag)
+                locweight, srange, rms_ssh_NEMO, delt_obs, nitend_par, dim_lag)
            CALL close_netcdf_asml()
         END IF
      ELSE firststep

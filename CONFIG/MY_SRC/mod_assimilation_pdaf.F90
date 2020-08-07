@@ -57,7 +57,6 @@ MODULE mod_assimilation_pdaf
   ! ! Settings for observations - available as command line options
   INTEGER   :: delt_obs       ! time step interval between assimilation steps
   INTEGER   :: child_dt_fac   ! time step factor between child and parent grid
-  REAL(pwp) :: rms_obs        ! RMS error size for observation generation
   INTEGER   :: dim_obs        ! Number of observations
 
   ! ! General control of PDAF - available as command line options
@@ -188,7 +187,9 @@ MODULE mod_assimilation_pdaf
   LOGICAL :: output_U   = .TRUE.
   LOGICAL :: output_V   = .TRUE.
 
-  REAL :: coords_l(2)      ! Coordinates of local analysis domain
+  REAL(pwp) :: coords_l(2)      ! Coordinates of local analysis domain
+  REAL(pwp), ALLOCATABLE :: indx_dom_l_par(:,:)   ! Indices of local analysis domain
+  REAL(pwp), ALLOCATABLE :: indx_dom_l_child(:,:) ! Indices of local analysis domain
 
 !$OMP THREADPRIVATE(coords_l)
 
@@ -214,9 +215,11 @@ CONTAINS
     ! !USES:
     USE mod_kind_pdaf
     USE mod_parallel_pdaf, &     ! Parallelization variables
-         ONLY: mype_world, abort_parallel
+         ONLY: mype_world, abort_parallel, mpi_send_halo
     USE mod_agrif_pdaf, &
          ONLY: fill2d_statevector, fill3d_statevector
+    USE mod_statevector_pdaf, &
+         ONLY: halo_2d_par, halo_2d_child
 
     IMPLICIT NONE
 
@@ -256,17 +259,24 @@ CONTAINS
     ! grid exists then only the second step is done. Because collection is done
     ! here, the collect_state call-back routine from PDAF is now redundant.
     !
+    ! Halo regions need to be collected for the observation operator. At present
+    ! only 2D observation operators have been developed. Hence only 2D halo
+    ! regions need to be collected ie halo_X_grid is only passed as an argument
+    ! to the 2D routines.
+    !
     ! **************************************************************************
     ! **************************************************************************
 
 #if defined key_agrif
     IF ( fill_cnt == ((child_dt_fac+1)*delt_obs) - 1 ) THEN
-       CALL fill2d_statevector(state_p_pointer, 'child')
+       CALL fill2d_statevector(state_p_pointer, halo_2d_child, 'child')
+       CALL mpi_send_halo(halo_2d_child, 'child')
        CALL fill3d_statevector(state_p_pointer, 'child')
     ENDIF
 #endif
     IF ( fill_cnt == (child_dt_fac+1)*delt_obs ) THEN
-       CALL fill2d_statevector(state_p_pointer, 'par')
+       CALL fill2d_statevector(state_p_pointer, halo_2d_par, 'par')
+       CALL mpi_send_halo(halo_2d_par, 'par')
        CALL fill3d_statevector(state_p_pointer, 'par')
        ! Reset counter for next assimilation step
        fill_cnt = 0
@@ -298,5 +308,6 @@ CONTAINS
     END IF
 
   END SUBROUTINE assimilate_pdaf
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_assimilation_pdaf

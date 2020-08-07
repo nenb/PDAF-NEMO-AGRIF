@@ -6,6 +6,7 @@
 ! !INTERFACE:
 SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
 !$AGRIF_DO_NOT_TREAT
+
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -71,5 +72,6 @@ SUBROUTINE next_observation_pdaf(stepnow, nsteps, doexit, time)
      IF (mype_ens == 0) WRITE (*, '(i7, 3x, a)') &
           stepnow, 'No more observations - end assimilation'
   END IF
+
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE next_observation_pdaf

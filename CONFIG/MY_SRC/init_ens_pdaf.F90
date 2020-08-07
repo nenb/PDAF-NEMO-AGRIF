@@ -7,6 +7,7 @@
 SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
      ens_p, flag)
 !$AGRIF_DO_NOT_TREAT
+
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEIK/LSEIK/ETKF/LETKF/ESTKF/LESTKF
@@ -89,6 +90,8 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   ! Compute weighting factor for ensemble perturbations
   DO i = 1, dim_ens
      !wght(i)= (REAL(dim_ens) - dimens_mean - ABS(REAL(i) - 1.0 - dimens_mean))
+     ! *WARNING:* Variable weights currently leads to NEMO crashing. Use constant
+     ! weight until/if solution found.
      wght(i) = 1.0_pwp
   END DO
 

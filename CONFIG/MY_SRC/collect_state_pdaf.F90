@@ -28,6 +28,7 @@ SUBROUTINE collect_state_pdaf(dim_p, state_p)
 !
   ! !USES:
   USE mod_kind_pdaf
+
   IMPLICIT NONE
 
 ! !ARGUMENTS:

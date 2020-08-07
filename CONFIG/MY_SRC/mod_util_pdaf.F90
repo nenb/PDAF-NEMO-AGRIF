@@ -1,5 +1,6 @@
 MODULE mod_util_pdaf
 !$AGRIF_DO_NOT_TREAT
+
 CONTAINS
 
   !$Id: init_info_pdaf.F90 1589 2015-06-12 11:57:58Z lnerger $
@@ -190,11 +191,18 @@ CONTAINS
          ONLY: mype_ens
     USE mod_assimilation_pdaf, &
          ONLY: filtertype, subtype, dim_ens, delt_obs, child_dt_fac, &
-         screen, incremental, type_forget, forget, local_range,&
-         locweight, srange, rms_obs,type_trans,&
-         type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
+         screen, forget, local_range,&
+         locweight, srange,&
+         istate_fname_t,&
          istate_fname_u, istate_fname_v, istate_fname_t_child,&
          istate_fname_u_child, istate_fname_v_child
+    USE mod_obs_ssh_NEMO_pdafomi, &
+         ONLY: assim_ssh_NEMO, rms_ssh_NEMO, file_ssh_NEMO, &
+         twin_exp_ssh_NEMO, noise_amp_ssh_NEMO
+    USE mod_agrif_pdaf, &
+         ONLY: lowlim_ssh_NEMO, upplim_ssh_NEMO, lowlim_sal_NEMO, upplim_sal_NEMO, &
+         lowlim_temp_NEMO, upplim_temp_NEMO, lowlim_uvel_NEMO, upplim_uvel_NEMO, &
+         lowlim_vvel_NEMO, upplim_vvel_NEMO
 
     IMPLICIT NONE
     !EOP
@@ -203,11 +211,16 @@ CONTAINS
     CHARACTER(len=100) :: nmlfile   ! name of namelist file
 
     NAMELIST /pdaf_nml/ filtertype, subtype, dim_ens,&
-         delt_obs, child_dt_fac, screen,incremental, type_forget, forget,&
-         local_range, locweight, srange, rms_obs,type_trans,&
-         type_sqrt, covartype, rank_analysis_enkf, istate_fname_t,&
+         delt_obs, child_dt_fac, screen, forget,&
+         local_range, locweight, srange,&
+         istate_fname_t,&
          istate_fname_u, istate_fname_v, istate_fname_t_child,&
-         istate_fname_u_child, istate_fname_v_child
+         istate_fname_u_child, istate_fname_v_child, assim_ssh_NEMO, &
+         rms_ssh_NEMO, file_ssh_NEMO, twin_exp_ssh_NEMO, &
+         noise_amp_ssh_NEMO, lowlim_ssh_NEMO, upplim_ssh_NEMO, &
+         lowlim_sal_NEMO, upplim_sal_NEMO, lowlim_temp_NEMO, &
+         upplim_temp_NEMO, lowlim_uvel_NEMO, upplim_uvel_NEMO, &
+         lowlim_vvel_NEMO, upplim_vvel_NEMO
 
     ! ****************************************************
     ! ***   Initialize PDAF parameters from namelist   ***
@@ -231,24 +244,120 @@ CONTAINS
        WRITE (*,'(5x,a,i10)')    'delt_obs     ', delt_obs
        WRITE (*,'(5x,a,i10)')    'child_dt_fac ', child_dt_fac
        WRITE (*,'(5x,a,i10)')    'screen       ', screen
-       WRITE (*,'(5x,a,i10)')    'incremental  ', incremental
-       WRITE (*,'(5x,a,i10)')    'type_forget  ', type_forget
        WRITE (*,'(5x,a,f10.2)')  'forget       ', forget
-       WRITE (*,'(5x,a,i10)')    'type_trans   ', type_trans
        WRITE (*,'(5x,a,es10.2)') 'local_range  ', local_range
        WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
        WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
-       WRITE (*,'(5x,a,es10.2)') 'rms_obs_ssh  ', rms_obs
        WRITE (*,'(5x,a,a)')  'istate_fname_t   ', istate_fname_t
        WRITE (*,'(5x,a,a)')  'istate_fname_u   ', istate_fname_u
        WRITE (*,'(5x,a,a)')  'istate_fname_v   ', istate_fname_v
        WRITE (*,'(5x,a,a)')  'istate_fname_t_child  ', istate_fname_t_child
        WRITE (*,'(5x,a,a)')  'istate_fname_u_child  ', istate_fname_u_child
        WRITE (*,'(5x,a,a)')  'istate_fname_v_child  ', istate_fname_v_child
+       WRITE (*,'(5x,a,l1)') 'assim_ssh_NEMO   ', assim_ssh_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'rms_ssh_NEMO ', rms_ssh_NEMO
+       WRITE (*,'(5x,a,a)')  'file_ssh_NEMO    ', file_ssh_NEMO
+       WRITE (*,'(5x,a,l1)')     'twin_exp_ssh_NEMO  ', twin_exp_ssh_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'noise_amp_ssh_NEMO ', noise_amp_ssh_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_ssh_NEMO ', lowlim_ssh_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'upplim_ssh_NEMO ', upplim_ssh_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_sal_NEMO ', lowlim_sal_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'upplim_sal_NEMO ', upplim_sal_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_temp_NEMO ', lowlim_temp_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'upplim_temp_NEMO ', upplim_temp_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_uvel_NEMO ', lowlim_uvel_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'upplim_uvel_NEMO ', upplim_uvel_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_vvel_NEMO ', lowlim_vvel_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'upplim_vvel_NEMO ', upplim_vvel_NEMO
        WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
     END IF showconf
 
   END SUBROUTINE read_config_pdaf
+
+  SUBROUTINE cleanup_pdaf()
+
+    ! !DESCRIPTION:
+    ! Clean-up at end of PDAF.
+
+#if defined key_agrif
+    USE mod_agrif_pdaf, &
+         ONLY: nimppt_child, nimppt_par, njmppt_child, njmppt_par, &
+         glamt_par, glamt_child, gphit_par, gphit_child, tmask_par, &
+         tmask_child
+    USE mod_statevector_pdaf, &
+         ONLY: halo_2d_par, halo_2d_child
+#else
+    USE mod_agrif_pdaf, &
+         ONLY: nimppt_par, njmppt_par, glamt_par, gphit_par, tmask_par
+    USE mod_statevector_pdaf, &
+         ONLY: halo_2d_par
+#endif
+
+    IMPLICIT NONE
+    !EOP
+
+
+    ! Clean-up from mod_agrif_pdaf
+#if defined key_agrif
+    IF (ALLOCATED(nimppt_par)) DEALLOCATE(nimppt_par)
+    IF (ALLOCATED(njmppt_par)) DEALLOCATE(njmppt_par)
+    IF (ALLOCATED(gphit_par)) DEALLOCATE(gphit_par)
+    IF (ALLOCATED(glamt_par)) DEALLOCATE(glamt_par)
+    IF (ALLOCATED(tmask_par)) DEALLOCATE(tmask_par)
+    IF (ALLOCATED(halo_2d_par)) DEALLOCATE(halo_2d_par)
+    IF (ALLOCATED(nimppt_child)) DEALLOCATE(nimppt_child)
+    IF (ALLOCATED(njmppt_child)) DEALLOCATE(njmppt_child)
+    IF (ALLOCATED(gphit_child)) DEALLOCATE(gphit_child)
+    IF (ALLOCATED(glamt_child)) DEALLOCATE(glamt_child)
+    IF (ALLOCATED(tmask_child)) DEALLOCATE(tmask_child)
+    IF (ALLOCATED(halo_2d_child)) DEALLOCATE(halo_2d_child)
+#else
+    IF (ALLOCATED(nimppt_par)) DEALLOCATE(nimppt_par)
+    IF (ALLOCATED(njmppt_par)) DEALLOCATE(njmppt_par)
+    IF (ALLOCATED(gphit_par)) DEALLOCATE(gphit_par)
+    IF (ALLOCATED(glamt_par)) DEALLOCATE(glamt_par)
+    IF (ALLOCATED(tmask_par)) DEALLOCATE(tmask_par)
+    IF (ALLOCATED(halo_2d_par)) DEALLOCATE(halo_2d_par)
+#endif
+
+  END SUBROUTINE cleanup_pdaf
+
+  !$Id: finalize_pdaf.F90 1857 2017-12-14 18:26:01Z lnerger $
+  !BOP
+  !
+  ! !ROUTINE: finalize_pdaf --- Finalize PDAF
+  !
+  ! !INTERFACE:
+  SUBROUTINE finalize_pdaf()
+
+    ! !DESCRIPTION:
+    ! Timing and clean-up of PDAF
+    !
+    ! !REVISION HISTORY:
+    ! 2004-11 - Lars Nerger - Initial code
+    ! Later revisions - see svn log
+    !
+    ! !USES:
+    USE mod_parallel_pdaf, &
+         ONLY: mype_ens
+
+    IMPLICIT NONE
+
+    ! !CALLING SEQUENCE:
+    ! Called by: main program
+    !EOP
+
+    ! *** Show allocated memory for PDAF ***
+    IF (mype_ens==0) CALL PDAF_print_info(2)
+
+    ! *** Print PDAF timings onto screen ***
+    IF (mype_ens==0) CALL PDAF_print_info(1)
+
+    ! *** Deallocate PDAF arrays
+    CALL PDAF_deallocate()
+
+  END SUBROUTINE finalize_pdaf
+
 !$AGRIF_END_DO_NOT_TREAT
 END MODULE mod_util_pdaf

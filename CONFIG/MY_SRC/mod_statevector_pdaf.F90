@@ -1,5 +1,6 @@
 MODULE mod_statevector_pdaf
 !$AGRIF_DO_NOT_TREAT
+
 ! !DESCRIPTION:
 ! This module provides variables & routines for
 ! manipulating the state vector.
@@ -51,6 +52,10 @@ MODULE mod_statevector_pdaf
   INTEGER :: mpi_subd_lon_par
   INTEGER :: mpi_subd_vert_par
 
+! Arrays to store halo regions for 2D variables - required
+! for observation operator routine
+  REAL(pwp), ALLOCATABLE, DIMENSION(:,:,:) :: halo_2d_par
+
 ! ********************
 ! Child grid variables
 ! ********************
@@ -91,6 +96,10 @@ MODULE mod_statevector_pdaf
   INTEGER :: mpi_subd_lat_child
   INTEGER :: mpi_subd_lon_child
   INTEGER :: mpi_subd_vert_child
+
+! Arrays to store halo regions for 2D variables - required
+! for observation operator routine
+  REAL(pwp), ALLOCATABLE, DIMENSION(:,:,:) :: halo_2d_child
 
   ! Array for 2d/3d state variable .NC ids
   CHARACTER(len=20), DIMENSION(1) :: id2d_list
