@@ -153,6 +153,26 @@ CONTAINS
          CALL update_halo('child')
       ENDIF
 # endif
+
+!!$      ! **********************************************************
+!!$      ! Alternative method using child grid to update parent grid.
+!!$      ! **********************************************************
+!!$
+!!$      IF ( MOD(kstp-nit000+1,delt_obs) == 1 .AND. Agrif_Root() ) THEN
+!!$         CALL distrib2d_statevector(state_p_pointer, 'par')
+!!$         CALL distrib3d_statevector(state_p_pointer, 'par')
+!!$# if defined key_agrif
+!!$         CALL agrif_parentgrid_to_childgrid()
+!!$         CALL distrib2d_statevector(state_p_pointer, 'child')
+!!$         CALL distrib3d_statevector(state_p_pointer, 'child')
+!!$         CALL update_halo('child')
+!!$         IF(kstep /= nit000) THEN
+!!$!!!!     **** UPDATE PARENT GRID HERE ****
+!!$         END IF
+!!$         CALL agrif_childgrid_to_parentgrid()
+!!$# endif
+!!$         CALL update_halo('par')
+!!$      END IF
 #endif
 
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

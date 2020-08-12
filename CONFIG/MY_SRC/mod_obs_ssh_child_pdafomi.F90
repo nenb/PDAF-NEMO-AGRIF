@@ -1,13 +1,12 @@
-!$Id: obs_A_pdafomi.F90 496 2020-06-09 15:26:17Z lnerger $
+!$Id: obs_B_pdafomi.F90 496 2020-06-09 15:26:17Z lnerger $
 !> PDAF-OMI observation module for type A observations
 !!
 !! This module handles operations for one data type (called 'module-type' below):
-!! TYPE = A
+!! TYPE = B
 !!
-!! __Observation type A:__
-!! The observation type A in this tutorial is the full set of observations except
-!! for three observations at the locations (8,5), (12,15), and (4,30) which are
-!! removed and only used for observation type B.
+!! __Observation type B:__
+!! The observation type B in this tutorial are the only the observations at
+!! the locations (8,5), (12,15), and (4,30). 
 !!
 !! The subroutines in this module are for the particular handling of
 !! a single observation type.
@@ -33,14 +32,14 @@
 !!           initialize coordinate array and index array for indices of
 !!           observed elements of the state vector.
 !! * obs_op_f_TYPE \n
-!!           observation operator to get full observation vector of this type.
+!!           observation operator to get full observation vector of this type. Here
 !!           one has to choose a proper observation operator or implement one.
 !!
 !! __Revision history:__
 !! * 2019-06 - Lars Nerger - Initial code
 !! * Later revisions - see repository log
 !!
-MODULE mod_obs_ssh_NEMO_pdafomi
+MODULE mod_obs_ssh_child_pdafomi
 !$AGRIF_DO_NOT_TREAT
 
   USE mod_kind_pdaf
@@ -50,22 +49,22 @@ MODULE mod_obs_ssh_NEMO_pdafomi
        ONLY: obs_f, obs_l   ! Declaration of observation data types
   USE netcdf
   USE mod_agrif_pdaf, &
-       ONLY: lowlim_ssh_NEMO, upplim_ssh_NEMO
+       ONLY: lowlim_ssh_child, upplim_ssh_child
  
   IMPLICIT NONE
   SAVE
 
   ! Variables which are inputs to the module (usually set in init_pdaf)
-  LOGICAL :: assim_ssh_NEMO    !< Whether to assimilate this data type
-  REAL(pwp) :: rms_ssh_NEMO    !< Observation error standard deviation (for constant errors)
-  LOGICAL :: twin_exp_ssh_NEMO ! Whether to perform an identical twin experiment
-  REAL(pwp) :: noise_amp_ssh_NEMO  ! Standard deviation for Gaussian noise in twin experiment
+  LOGICAL :: assim_ssh_child    !< Whether to assimilate this data type
+  REAL(pwp) :: rms_ssh_child    !< Observation error standard deviation (for constant errors)
+  LOGICAL :: twin_exp_ssh_child ! Whether to perform an identical twin experiment
+  REAL(pwp) :: noise_amp_ssh_child  ! Standard deviation for Gaussian noise in twin experiment
 
 
   ! One can declare further variables, e.g. for file names which can
   ! be use-included in init_pdaf() and initialized there.
-  CHARACTER(len=200) :: file_ssh_NEMO ! netcdf file holding observations
-  REAL(pwp), ALLOCATABLE :: coord2grid(:,:)  ! Array to convert PE-local observation
+  CHARACTER(len=200) :: file_ssh_child ! netcdf file holding observations
+  REAL(pwp), ALLOCATABLE :: coord2grid_child(:,:)  ! Array to convert PE-local observation
                                              ! coordinates to PE-local gridbox coordinates.
   REAL(pwp), PARAMETER :: rad_conv = 3.141592653589793/180.0   ! Degree to radian conversion
 
@@ -160,20 +159,18 @@ CONTAINS
 !! * thisobs\%dim_obs_g   - Number of global observations (only if if use_global_obs=.false)
 !! * thisobs\%id_obs_f_lim - Ids of full observations in global observations (if use_global_obs=.false)
 !!
-  SUBROUTINE init_dim_obs_f_ssh_NEMO(step, dim_obs_f)
+  SUBROUTINE init_dim_obs_f_ssh_child(step, dim_obs_f)
 
     USE PDAFomi, &
          ONLY: PDAFomi_gather_obs_f
     USE mod_assimilation_pdaf, &
-         ONLY: filtertype, local_range, delt_obs
+         ONLY: filtertype, local_range_child, delt_obs
     USE mod_statevector_pdaf, &
-         ONLY: mpi_subd_lon_par, mpi_subd_lat_par, ssh_p_offset_par
+         ONLY: mpi_subd_lon_child, mpi_subd_lat_child, ssh_p_offset_child
     USE mod_parallel_pdaf, &
-         ONLY: nldj_child, nldj_par, nldi_child, nldi_par, COMM_filter
+         ONLY: nldj_child, nldj_child, nldi_child, nldi_child, COMM_filter
     USE mod_agrif_pdaf, &
-         ONLY: glamt_par, gphit_par
-    USE dom_oce, &
-         ONLY: ndastp ! Current date
+         ONLY: glamt_child, gphit_child, ndastp_child
 
     IMPLICIT NONE
 
@@ -191,8 +188,8 @@ CONTAINS
     INTEGER :: dim_lon, dim_lat  ! NetCDF dimension values
     INTEGER :: id_var            ! IDs for fields
     INTEGER :: pos(3),cnt(3)     ! Vectors for 3D field
-    REAL(pwp), ALLOCATABLE :: longitude_ssh_NEMO(:) ! Global observation longitude values
-    REAL(pwp), ALLOCATABLE :: latitude_ssh_NEMO(:)  ! Global observation latitude values
+    REAL(pwp), ALLOCATABLE :: lon_ssh_obs(:) ! Global observation longitude values
+    REAL(pwp), ALLOCATABLE :: lat_ssh_obs(:)  ! Global observation latitude values
     REAL(pwp), ALLOCATABLE :: obs(:,:,:)            ! Global observation field
     REAL(pwp) :: scale_fac                          ! Scale factor for observation field
     ! Local variables for counting number of PE-local observations
@@ -218,10 +215,10 @@ CONTAINS
 ! *********************************************
 
     IF (mype_filter==0) &
-         WRITE (*,'(8x,a)') 'Assimilate observations - obs ssh_NEMO'
+         WRITE (*,'(8x,a)') 'Assimilate observations - obs ssh_child'
 
     ! Store whether to assimilate this observation type (used in routines below)
-    IF (assim_ssh_NEMO) thisobs%doassim = 1
+    IF (assim_ssh_child) thisobs%doassim = 1
 
     ! Specify type of distance computation
     thisobs%disttype = 3   ! 3=Haversine
@@ -252,23 +249,23 @@ CONTAINS
 
     ! *************************************************************
 
-    ! Format of ndastp is YYYYMMDD
-    step_count=MOD(ndastp,100)
+    ! Format of ndastp_child is YYYYMMDD
+    step_count=MOD(ndastp_child,100)
     IF(mype_filter == 0) WRITE(*,'(/9x, a, 2i)') &
-         'mod_obs_ssh_NEMO current date:', ndastp
+         'mod_obs_ssh_child current date:', ndastp_child
 
     ! *****************************************
     ! *** Open file containing observations ***
     ! *****************************************
 
     s = 1
-    stat(s) = NF90_OPEN(file_ssh_NEMO, NF90_NOWRITE, ncid_in)
+    stat(s) = NF90_OPEN(file_ssh_child, NF90_NOWRITE, ncid_in)
     s = s + 1
 
     DO j = 1, s-1
        IF (stat(s) /= NF90_NOERR) THEN
           WRITE(*,'(/9x, a, 3x, a)') &
-               'ERROR: NetCDF error in opening obs file:', file_ssh_NEMO
+               'ERROR: NetCDF error in opening obs file:', file_ssh_child
           CALL abort_parallel()
        END IF
     END DO
@@ -287,35 +284,35 @@ CONTAINS
     stat(s) = NF90_INQUIRE_DIMENSION(ncid_in, id_dimy, len=dim_lat)
     s = s + 1
 
-    ALLOCATE(longitude_ssh_NEMO(dim_lon))
+    ALLOCATE(lon_ssh_obs(dim_lon))
     stat(s) = NF90_INQ_VARID(ncid_in, 'longitude', id_dimx)
     s = s + 1
-    stat(s) = NF90_GET_VAR(ncid_in, id_dimx, longitude_ssh_NEMO)
+    stat(s) = NF90_GET_VAR(ncid_in, id_dimx, lon_ssh_obs)
     s = s + 1
 
     ! Work in longitude format between 0 and 360 degrees
     DO i = 1 , dim_lon
-       IF(longitude_ssh_NEMO(i) < 0.0_pwp) longitude_ssh_NEMO(i) = &
-            longitude_ssh_NEMO(i) + 360.0_pwp
+       IF(lon_ssh_obs(i) < 0.0_pwp) lon_ssh_obs(i) = &
+            lon_ssh_obs(i) + 360.0_pwp
     END DO
 
-    IF ( (MAXVAL(longitude_ssh_NEMO) >= 360.0_pwp) .OR. &
-         (MINVAL(longitude_ssh_NEMO) < 0.0_pwp) ) THEN
-       WRITE(*,*) 'ERROR: ssh_NEMO longitude has non-standard format.'
+    IF ( (MAXVAL(lon_ssh_obs) >= 360.0_pwp) .OR. &
+         (MINVAL(lon_ssh_obs) < 0.0_pwp) ) THEN
+       WRITE(*,*) 'ERROR: ssh_child longitude has non-standard format.'
        CALL abort_parallel()
     END IF
 
-    ALLOCATE(latitude_ssh_NEMO(dim_lat))
+    ALLOCATE(lat_ssh_obs(dim_lat))
     stat(s) = NF90_INQ_VARID(ncid_in, 'latitude', id_dimy)
     s = s + 1
-    stat(s) = NF90_GET_VAR(ncid_in, id_dimy, latitude_ssh_NEMO)
+    stat(s) = NF90_GET_VAR(ncid_in, id_dimy, lat_ssh_obs)
     s = s + 1
 
     DO j = 1, s-1
        IF (stat(j) .NE. NF90_NOERR) THEN
           WRITE(*, '(/9x, a, 3x, i3, 3x, a, 3x, i1, 3x, a, 3x, a)') &
                'ERROR: NetCDF error', stat(j), 'in reading dimension:', j, &
-               ' from obs file:', file_ssh_NEMO
+               ' from obs file:', file_ssh_child
           CALL abort_parallel()
        END IF
     END DO
@@ -348,7 +345,7 @@ CONTAINS
        IF (stat(j) .NE. NF90_NOERR) THEN
           WRITE(*, '(/9x, a, 3x, i1, 3x, a, 3x, a)') &
                'NetCDF error in reading dimension:', j,&
-               ' from obs file:', file_ssh_NEMO
+               ' from obs file:', file_ssh_child
           CALL abort_parallel()
        END IF
     END DO
@@ -364,7 +361,7 @@ CONTAINS
     DO j = 1, s - 1
        IF (stat(j) .NE. NF90_NOERR) THEN
           WRITE(*,'(/9x, a, 3x, a)') &
-               'NetCDF error in closing obs file:', file_ssh_NEMO
+               'NetCDF error in closing obs file:', file_ssh_child
           CALL abort_parallel()
        END IF
     END DO
@@ -378,15 +375,15 @@ CONTAINS
     ! local PE non-trivial. See notes in following routine for details.
     ! *WARNING*: Longitude needs format 0-360 degrees for this routine.
     IF (firsttime) THEN
-       CALL obs_in_grid_lcl(longitude_ssh_NEMO, latitude_ssh_NEMO, &
-            mpi_subd_lon_par, mpi_subd_lat_par, coord2grid)
+       CALL obs_in_grid_lcl(lon_ssh_obs, lat_ssh_obs, &
+            mpi_subd_lon_child, mpi_subd_lat_child, coord2grid_child)
        firsttime = .FALSE.
     ELSE
        ! Do not call this routine again during later assimilation timesteps.
        ! *IMPORTANT* This assumes that observation coordinates are time
        ! invariant.
        IF (mype_filter ==0) THEN
-          WRITE(*,'(/9x, a)') 'WARNING: Reusing coord2grid from first &
+          WRITE(*,'(/9x, a)') 'WARNING: Reusing coord2grid_child from first &
                & assimilation timestep. This assumes that longitude/latitude &
                & observation coordinates are the same for all time steps.'
        END IF
@@ -400,30 +397,35 @@ CONTAINS
 
     ! *** Count valid observations that lie within the process sub-domain ***
     cnt_p = 0
-    ! Use SIZE(coord2grid(:,1)) as upper limit for obs on local PE
-    DO ind_obs = 1 , SIZE(coord2grid(:,1))
-       i_obs = INT(coord2grid(ind_obs,1))
-       j_obs = INT(coord2grid(ind_obs,2))
-       ! Reject non-existent and unrealistic obs
-       IF ( obs(i_obs, j_obs, 1) .GT. lowlim_ssh_NEMO) THEN
-          IF ( obs(i_obs, j_obs, 1) .LT. upplim_ssh_NEMO) THEN
-             i_pe = INT(coord2grid(ind_obs,3))
-             j_pe = INT(coord2grid(ind_obs,4))
-             ! Reject obs in gridbox with one land vertex.
-             ! Current interpolation algorithm possibly unstable for land vertex.
-             IF(.NOT. land_vertex_2d(i_pe,j_pe) ) THEN
-                cnt_p=cnt_p+1
+
+    ! Crude hack for case when no observations on PE. In this case, coord2grid
+    ! is allocated size 1 and given dummy index values which are all negative.
+    IF (coord2grid_child(1,1) > 0) THEN
+       ! Use SIZE(coord2grid_child(:,1)) as upper limit for obs on local PE
+       DO ind_obs = 1 , SIZE(coord2grid_child(:,1))
+          i_obs = INT(coord2grid_child(ind_obs,1))
+          j_obs = INT(coord2grid_child(ind_obs,2))
+          ! Reject non-existent and unrealistic obs
+          IF ( obs(i_obs, j_obs, 1) .GT. lowlim_ssh_child) THEN
+             IF ( obs(i_obs, j_obs, 1) .LT. upplim_ssh_child) THEN
+                i_pe = INT(coord2grid_child(ind_obs,3))
+                j_pe = INT(coord2grid_child(ind_obs,4))
+                ! Reject obs in gridbox with one land vertex.
+                ! Current interpolation algorithm possibly unstable for land vertex.
+                IF(.NOT. land_vertex_2d(i_pe,j_pe) ) THEN
+                   cnt_p=cnt_p+1
+                END IF
              END IF
           END IF
-       END IF
-    END DO
+       END DO
+    END IF
 
     ! Set number of local observations
     dim_obs_p = cnt_p
 
     IF(cnt_p == 0) THEN
-       WRITE(*,'(/9x, a, i3, 3x, a, i3)') 'WARNING: No ssh_NEMO observations on &
-            & local domain:', mype_filter, 'step_count:', step_count
+       WRITE(*,'(/9x, a, i3, 3x, a, i3)') 'WARNING: No ssh_child observations on &
+            & PE:', mype_filter, 'step_count:', step_count
     END IF
 
     ! *** Initialize vector of observations on the process sub-domain ***
@@ -440,15 +442,15 @@ CONTAINS
        ! 1 if observations are at grid points; >1 if interpolation is required
        ALLOCATE(thisobs%id_obs_p(4, dim_obs_p))
        cnt_p = 0
-       ! Use SIZE(coord2grid(:,1)) as upper limit for obs on local PE
-       DO ind_obs = 1 , SIZE(coord2grid(:,1))
-          i_obs = INT(coord2grid(ind_obs,1))
-          j_obs = INT(coord2grid(ind_obs,2))
+       ! Use SIZE(coord2grid_child(:,1)) as upper limit for obs on local PE
+       DO ind_obs = 1 , SIZE(coord2grid_child(:,1))
+          i_obs = INT(coord2grid_child(ind_obs,1))
+          j_obs = INT(coord2grid_child(ind_obs,2))
           ! Reject non-existent and unrealistic obs
-          IF ( obs(i_obs, j_obs, 1) .GT. lowlim_ssh_NEMO) THEN
-             IF ( obs(i_obs, j_obs, 1) .LT. upplim_ssh_NEMO) THEN
-                i_pe = INT(coord2grid(ind_obs,3))
-                j_pe = INT(coord2grid(ind_obs,4))
+          IF ( obs(i_obs, j_obs, 1) .GT. lowlim_ssh_child) THEN
+             IF ( obs(i_obs, j_obs, 1) .LT. upplim_ssh_child) THEN
+                i_pe = INT(coord2grid_child(ind_obs,3))
+                j_pe = INT(coord2grid_child(ind_obs,4))
                 ! Reject obs in gridbox with one land vertex.
                 ! Current interpolation algorithm possibly unstable for land vertex.
                 IF(.NOT. land_vertex_2d(i_pe,j_pe) ) THEN
@@ -457,8 +459,8 @@ CONTAINS
                    ! Observation
                    obs_p(cnt_p) = obs(i_obs, j_obs, 1)
                    ! Observation coordinates - must be in radians
-                   ocoord_p(1, cnt_p) = longitude_ssh_NEMO(i_obs)*rad_conv
-                   ocoord_p(2, cnt_p) = latitude_ssh_NEMO(j_obs)*rad_conv
+                   ocoord_p(1, cnt_p) = lon_ssh_obs(i_obs)*rad_conv
+                   ocoord_p(2, cnt_p) = lat_ssh_obs(j_obs)*rad_conv
                    ! PE coordinates for observation gridbox
                    ogrid_p(1, cnt_p) = i_pe
                    ogrid_p(2, cnt_p) = j_pe
@@ -479,11 +481,11 @@ CONTAINS
                    ! follows. The bottom right corner is given an index of 1, the grid box
                    ! directly above the bottom right corner is given an index of 2, and so on
                    ! until we reach the grid box directly below the top right corner (this is a
-                   ! total of mpi_subd_lat_par points). We then move to the top left corner and
-                   ! continue indexing from mpi_subd_lat_par + 1. We continue in a horizontal
+                   ! total of mpi_subd_lat_child points). We then move to the top left corner and
+                   ! continue indexing from mpi_subd_lat_child + 1. We continue in a horizontal
                    ! fashion along the North boundary until eventually we reach the top right
-                   ! corner. The top right corner is then indexed as (mpi_subd_lat_par +
-                   ! mpi_subd_lon_par + 1).
+                   ! corner. The top right corner is then indexed as (mpi_subd_lat_child +
+                   ! mpi_subd_lon_child + 1).
                    !
                    ! A further refinement to the above indexing scheme is introduced here: all
                    ! halo region indices are assigned a negative value. This is necessary so
@@ -497,54 +499,54 @@ CONTAINS
                    ! when no halo values are required.
                    !
                    ! Case 1: Halo regions required for 3 gridpoints
-                   IF (i_pe == mpi_subd_lon_par .AND. j_pe == mpi_subd_lat_par) THEN
+                   IF (i_pe == mpi_subd_lon_child .AND. j_pe == mpi_subd_lat_child) THEN
                       ! Bottom left
-                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Bottom right
-                      thisobs%id_obs_p(2, cnt_p) = -mpi_subd_lat_par
+                      thisobs%id_obs_p(2, cnt_p) = -mpi_subd_lat_child
                       ! Top left
-                      thisobs%id_obs_p(3, cnt_p) = -mpi_subd_lat_par - mpi_subd_lon_par
+                      thisobs%id_obs_p(3, cnt_p) = -mpi_subd_lat_child - mpi_subd_lon_child
                       ! Top right
-                      thisobs%id_obs_p(4, cnt_p) = -mpi_subd_lat_par - mpi_subd_lon_par - 1
+                      thisobs%id_obs_p(4, cnt_p) = -mpi_subd_lat_child - mpi_subd_lon_child - 1
                    ! Case 2: Halo regions required for 2 gridpoints - Eastern boundary
-                   ELSE IF (i_pe == mpi_subd_lon_par) THEN
+                   ELSE IF (i_pe == mpi_subd_lon_child) THEN
                       ! Bottom left
-                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Bottom right
                       thisobs%id_obs_p(2, cnt_p) = -j_pe
                       ! Top left
-                      thisobs%id_obs_p(3, cnt_p) = i_pe + j_pe*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(3, cnt_p) = i_pe + j_pe*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Top right
                       thisobs%id_obs_p(4, cnt_p) = -j_pe - 1
                    ! Case 3: Halo regions required for 2 gridpoints - Northern boundary
-                   ELSE IF (j_pe == mpi_subd_lat_par) THEN
+                   ELSE IF (j_pe == mpi_subd_lat_child) THEN
                       ! Bottom left
-                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Bottom right
                       thisobs%id_obs_p(2, cnt_p) = (i_pe+1) + &
-                           (j_pe-1)* mpi_subd_lon_par + ssh_p_offset_par
+                           (j_pe-1)* mpi_subd_lon_child + ssh_p_offset_child
                       ! Top left
-                      thisobs%id_obs_p(3, cnt_p) = -mpi_subd_lat_par - i_pe
+                      thisobs%id_obs_p(3, cnt_p) = -mpi_subd_lat_child - i_pe
                       ! Top right
-                      thisobs%id_obs_p(4, cnt_p) = -mpi_subd_lat_par - i_pe - 1
+                      thisobs%id_obs_p(4, cnt_p) = -mpi_subd_lat_child - i_pe - 1
                    ! Case 4: No halo regions required
                    ELSE
                       ! Bottom left
-                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(1, cnt_p) = i_pe + (j_pe-1)*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Bottom right
                       thisobs%id_obs_p(2, cnt_p) = (i_pe+1) + &
-                           (j_pe-1)* mpi_subd_lon_par + ssh_p_offset_par
+                           (j_pe-1)* mpi_subd_lon_child + ssh_p_offset_child
                       ! Top left
-                      thisobs%id_obs_p(3, cnt_p) = i_pe + j_pe*mpi_subd_lon_par &
-                           + ssh_p_offset_par
+                      thisobs%id_obs_p(3, cnt_p) = i_pe + j_pe*mpi_subd_lon_child &
+                           + ssh_p_offset_child
                       ! Top right
                       thisobs%id_obs_p(4, cnt_p) = (i_pe+1) + &
-                           j_pe*mpi_subd_lon_par + ssh_p_offset_par
+                           j_pe*mpi_subd_lon_child + ssh_p_offset_child
                    END IF
                    !
                    ! ****************************************************************
@@ -582,45 +584,45 @@ CONTAINS
           j_pe = ogrid_p(2,i)
 
           ! Compute halo offset
-          i0 = nldi_par - 1
-          j0 = nldj_par - 1
+          i0 = nldi_child - 1
+          j0 = nldj_child - 1
 
           ! Convert from gridpoint to lon,lat
           ! bottom left
-          lon_pe(1) = glamt_par( i_pe+i0, j_pe+j0 )
+          lon_pe(1) = glamt_child( i_pe+i0, j_pe+j0 )
           ! Convert to 0-360 degree format
           IF(lon_pe(1) < 0.0_pwp) &
                lon_pe(1) = lon_pe(1) + 360.0_pwp
-          lat_pe(1) = gphit_par( i_pe+i0, j_pe+j0 )
+          lat_pe(1) = gphit_child( i_pe+i0, j_pe+j0 )
 
           ! bottom right
-          lon_pe(2) = glamt_par( i_pe+i0+1, j_pe+j0 )
+          lon_pe(2) = glamt_child( i_pe+i0+1, j_pe+j0 )
           ! Convert to 0-360 degree format
           IF(lon_pe(2) < 0.0_pwp) &
                lon_pe(2) = lon_pe(2) + 360.0_pwp
-          lat_pe(2) = gphit_par( i_pe+i0+1, j_pe+j0 )
+          lat_pe(2) = gphit_child( i_pe+i0+1, j_pe+j0 )
 
           ! top left
-          lon_pe(3) = glamt_par( i_pe+i0, j_pe+j0+1 )
+          lon_pe(3) = glamt_child( i_pe+i0, j_pe+j0+1 )
           ! Convert to 0-360 degree format
           IF(lon_pe(3) < 0.0_pwp) &
                lon_pe(3) = lon_pe(3) + 360.0_pwp
-          lat_pe(3) = gphit_par( i_pe+i0, j_pe+j0+1 )
+          lat_pe(3) = gphit_child( i_pe+i0, j_pe+j0+1 )
 
           ! top right
-          lon_pe(4) = glamt_par( i_pe+i0+1, j_pe+j0+1 )
+          lon_pe(4) = glamt_child( i_pe+i0+1, j_pe+j0+1 )
           ! Convert to 0-360 degree format
           IF(lon_pe(4) < 0.0_pwp) &
                lon_pe(4) = lon_pe(4) + 360.0_pwp
-          lat_pe(4) = gphit_par( i_pe+i0+1, j_pe+j0+1 )
+          lat_pe(4) = gphit_child( i_pe+i0+1, j_pe+j0+1 )
 
           ! i,j coordinates for obs.
           i_obs = ogrid_p(3,i)
           j_obs = ogrid_p(4,i)
 
           ! Obs coordinates - *degrees*, not radians
-          lon_obs = longitude_ssh_NEMO(i_obs)
-          lat_obs = latitude_ssh_NEMO(j_obs)
+          lon_obs = lon_ssh_obs(i_obs)
+          lat_obs = lat_ssh_obs(j_obs)
 
           ! Compute interpolation weights for case obs on vertex
           IF ( ABS( lon_pe(1)-lon_obs ) .LT. 1e-6_pwp .AND. &
@@ -665,7 +667,7 @@ CONTAINS
 
     ! *** Set inverse observation error variances ***
 
-    ivar_obs_p(:) = 1.0 / (rms_ssh_NEMO*rms_ssh_NEMO)
+    ivar_obs_p(:) = 1.0 / (rms_ssh_child*rms_ssh_child)
 
 
 ! ****************************************
@@ -673,7 +675,7 @@ CONTAINS
 ! ****************************************
 
     CALL PDAFomi_gather_obs_f(thisobs, dim_obs_p, obs_p, ivar_obs_p, ocoord_p, &
-         thisobs%ncoord, local_range, dim_obs_f)
+         thisobs%ncoord, local_range_child, dim_obs_f)
 
 
 ! *********************************************************
@@ -691,13 +693,14 @@ CONTAINS
 
     ! Deallocate all local arrays
     DEALLOCATE(obs)
-    DEALLOCATE(longitude_ssh_NEMO, latitude_ssh_NEMO)
+    DEALLOCATE(lon_ssh_obs, lat_ssh_obs)
     DEALLOCATE(obs_p, ocoord_p, ogrid_p, ivar_obs_p)
 
     ! Arrays in THISOBS have to be deallocated after the analysis step
     ! by a call to deallocate_obs() in prepoststep_pdaf.
 
-  END SUBROUTINE init_dim_obs_f_ssh_NEMO
+  END SUBROUTINE init_dim_obs_f_ssh_child
+
 
 
 !-------------------------------------------------------------------------------
@@ -722,18 +725,18 @@ CONTAINS
 !!
 !! The routine is called by all filter processes.
 !!
-  SUBROUTINE obs_op_f_ssh_NEMO(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
+  SUBROUTINE obs_op_f_ssh_child(dim_p, dim_obs_f, state_p, ostate_f, offset_obs)
 
     USE mod_obs_op_pdaf, &
-         ONLY: ssh_par_obs_op_gcirc
+         ONLY: ssh_child_obs_op_gcirc
 
     IMPLICIT NONE
 
 ! *** Arguments ***
     INTEGER, INTENT(in) :: dim_p                 !< PE-local state dimension
     INTEGER, INTENT(in) :: dim_obs_f             !< Dimension of full observed state (all observed fields)
-    REAL(pwp), INTENT(in)    :: state_p(dim_p)        !< PE-local model state
-    REAL(pwp), INTENT(inout) :: ostate_f(dim_obs_f)   !< Full observed state
+    REAL, INTENT(in)    :: state_p(dim_p)        !< PE-local model state
+    REAL, INTENT(inout) :: ostate_f(dim_obs_f)   !< Full observed state
     INTEGER, INTENT(inout) :: offset_obs         !< input: offset of module-type observations in ostate_f
                                                  !< output: input + number of added observations
 
@@ -744,10 +747,11 @@ CONTAINS
 
     IF (thisobs%doassim==1) THEN
        ! Great-circle interpolation obs operator for ssh_NEMO
-       CALL ssh_par_obs_op_gcirc(thisobs, 4, state_p, ostate_f, offset_obs)
+       CALL ssh_child_obs_op_gcirc(thisobs, 4, state_p, ostate_f, offset_obs)
     END IF
 
-  END SUBROUTINE obs_op_f_ssh_NEMO
+  END SUBROUTINE obs_op_f_ssh_child
+
 
 
 !-------------------------------------------------------------------------------
@@ -766,7 +770,7 @@ CONTAINS
 !! different localization radius and localization functions
 !! for each observation type and  local analysis domain.
 !!
-  SUBROUTINE init_dim_obs_l_ssh_NEMO(domain_p, step, dim_obs_f, dim_obs_l, &
+  SUBROUTINE init_dim_obs_l_ssh_child(domain_p, step, dim_obs_f, dim_obs_l, &
        off_obs_l, off_obs_f)
 
     ! Include PDAFomi function
@@ -774,7 +778,7 @@ CONTAINS
 
     ! Include localization radius and local coordinates
     USE mod_assimilation_pdaf, &   
-         ONLY: coords_l, local_range, locweight, srange
+         ONLY: coords_l, local_range_child, locweight, srange_child
 
     IMPLICIT NONE
 
@@ -791,7 +795,7 @@ CONTAINS
 ! *** Initialize local observation dimension ***
 ! **********************************************
 
-!!$    ! Gridpoint debugging
+    ! Gridpoint debugging
 !!$    IF (domain_p == 1019 .AND. mype_filter==9) THEN
 !!$       CALL PDAFomi_set_debug_flag(1019)
 !!$    ELSE IF (domain_p == 959 .AND. mype_filter==9) THEN
@@ -803,10 +807,10 @@ CONTAINS
 !!$    ENDIF
 
     CALL PDAFomi_init_dim_obs_l(thisobs_l, thisobs, coords_l, &
-         locweight, local_range, srange, &
+         locweight, local_range_child, srange_child, &
          dim_obs_l, off_obs_l, off_obs_f)
 
-  END SUBROUTINE init_dim_obs_l_ssh_NEMO
+  END SUBROUTINE init_dim_obs_l_ssh_child
 
 
 !-------------------------------------------------------------------------------
@@ -820,11 +824,10 @@ CONTAINS
     ! **********************************************************
 
     USE mod_parallel_pdaf, &
-         ONLY: nldj_par, nldi_par, mype_ens, COMM_filter
+         ONLY: nldj_child, nldi_child, mype_ens, COMM_filter, jpni_child, &
+         jpnj_child
     USE mod_agrif_pdaf, &
-         ONLY: glamt_par, gphit_par
-    USE mod_parallel_pdaf, &
-         ONLY: jpni_par, jpnj_par
+         ONLY: glamt_child, gphit_child
 
     IMPLICIT NONE
 
@@ -839,8 +842,8 @@ CONTAINS
 
     ! Local variables
     INTEGER :: i, j, ii, jj, s     ! Counters
-    INTEGER :: col, row, mid_col   ! Values to compute modified local PE dimension
-    INTEGER :: cnt, wrap_cnt       ! Counters for wraparound case
+    INTEGER :: col, row            ! Values to compute modified local PE dimension
+    INTEGER :: cnt                 ! Counters for wraparound case
     INTEGER :: i_pe, j_pe          ! Local PE coordinates
     INTEGER :: i0, j0              ! Halo offset for local PE
     INTEGER :: ilim, jlim          ! Limits for local PE
@@ -848,8 +851,6 @@ CONTAINS
     REAL(pwp) :: lonmax, lonmin   ! Bounds for dealing with wraparound case
     REAL(pwp) :: c_prod_13, c_prod_21, c_prod_34, c_prod_42 ! Cross products
     REAL(pwp), ALLOCATABLE :: grid_lon(:,:,:), grid_lat(:,:,:) ! Gridbox coordinates
-    REAL(pwp), ALLOCATABLE :: grid_lon_wrap(:,:), grid_lat_wrap(:,:) ! Gridbox
-    ! coordinates for wraparound case
     REAL(pwp), ALLOCATABLE   :: grid_lon_max(:,:),grid_lon_min(:,:) ! Useful limits
     REAL(pwp), ALLOCATABLE   :: grid_lat_max(:,:),grid_lat_min(:,:) ! Useful limits
     INTEGER :: tot_obs_gp_lcl ! Total number of observations on local PE
@@ -862,25 +863,21 @@ CONTAINS
 ! ********************************************
 
     ! First we compute a modified dimension of the local PE, depending on how the
-    ! MPI decomposition is performed. This is necessary as due to the E/W and NP
-    ! periodicities, certain gridboxes will occur on multiple PEs. Hence, we
-    ! introduce a modified dimension so (almost) all gridboxes will only occur
-    ! on a single PE. This is necessary so that we don't count the same observation
-    ! multiple times when we assign it a gridbox.
+    ! MPI decomposition is performed. This is necessary because we identify each
+    ! grid point with a grid box uniquely (a grid box is linked with its bottom
+    ! left vertex grid point), and this means that grid points on the North and
+    ! East global boundaries will not be associated with any grid box. Hence we
+    ! do not include these boundary grid points in our computation.
     !
-    col=MOD(mype_ens,jpni_par)
-    row=INT(mype_ens/jpni_par)
-    mid_col=INT(jpni_par/2)
-    IF( (col == jpni_par-1) .AND. (row == jpnj_par-1) ) THEN
+    col=MOD(mype_ens,jpni_child)
+    row=INT(mype_ens/jpni_child)
+    IF( (col == jpni_child-1) .AND. (row == jpnj_child-1) ) THEN
        ilim = idim_pe - 1
        jlim = jdim_pe - 1
-    ELSE IF(col == jpni_par-1)  THEN
+    ELSE IF(col == jpni_child-1)  THEN
        ilim = idim_pe - 1
        jlim = jdim_pe
-    ELSE IF( (row == jpnj_par - 1) .AND. (col < mid_col) )THEN
-       ilim = idim_pe
-       jlim = jdim_pe - 2
-    ELSE IF( row == jpnj_par - 1 ) THEN
+    ELSE IF( row == jpnj_child - 1 ) THEN
        ilim = idim_pe
        jlim = jdim_pe - 1
     ELSE
@@ -909,114 +906,42 @@ CONTAINS
           j_pe = j
 
           ! Compute halo offset.
-          i0 = nldi_par - 1
-          j0 = nldj_par - 1
+          i0 = nldi_child - 1
+          j0 = nldj_child - 1
 
           ! bottom left
-          grid_lon(1,i,j) = glamt_par( i_pe+i0, j_pe+j0 )
+          grid_lon(1,i,j) = glamt_child( i_pe+i0, j_pe+j0 )
           ! Convert to 0-360 degree format
           IF(grid_lon(1,i,j) < 0.0_pwp) &
                grid_lon(1,i,j) = grid_lon(1,i,j) + 360.0_pwp
-          grid_lat(1,i,j) = gphit_par( i_pe+i0, j_pe+j0 )
+          grid_lat(1,i,j) = gphit_child( i_pe+i0, j_pe+j0 )
 
           ! bottom right
-          grid_lon(2,i,j) = glamt_par( i_pe+i0+1, j_pe+j0 )
+          grid_lon(2,i,j) = glamt_child( i_pe+i0+1, j_pe+j0 )
           ! Convert to 0-360 degree format
           IF(grid_lon(2,i,j) < 0.0_pwp) &
                grid_lon(2,i,j) = grid_lon(2,i,j) + 360.0_pwp
-          grid_lat(2,i,j) = gphit_par( i_pe+i0+1, j_pe+j0 )
+          grid_lat(2,i,j) = gphit_child( i_pe+i0+1, j_pe+j0 )
 
           ! top left
-          grid_lon(3,i,j) = glamt_par( i_pe+i0, j_pe+j0+1 )
+          grid_lon(3,i,j) = glamt_child( i_pe+i0, j_pe+j0+1 )
           ! Convert to 0-360 degree format
           IF(grid_lon(3,i,j) < 0.0_pwp) &
                grid_lon(3,i,j) = grid_lon(3,i,j) + 360.0_pwp
-          grid_lat(3,i,j) = gphit_par( i_pe+i0, j_pe+j0+1 )
+          grid_lat(3,i,j) = gphit_child( i_pe+i0, j_pe+j0+1 )
 
           ! top right
-          grid_lon(4,i,j) = glamt_par( i_pe+i0+1, j_pe+j0+1 )
+          grid_lon(4,i,j) = glamt_child( i_pe+i0+1, j_pe+j0+1 )
           ! Convert to 0-360 degree format
           IF(grid_lon(4,i,j) < 0.0_pwp) &
                grid_lon(4,i,j) = grid_lon(4,i,j) + 360.0_pwp
-          grid_lat(4,i,j) = gphit_par( i_pe+i0+1, j_pe+j0+1 )
+          grid_lat(4,i,j) = gphit_child( i_pe+i0+1, j_pe+j0+1 )
 
-          ! Store bottom left vertex. Redundant here, but needed later
-          ! for wraparound case.
+          ! Store bottom left vertex.
           grid_lon(5,i,j) = i
           grid_lat(5,i,j) = j
        END DO
     END DO
-
-    ! ***************
-    ! Wraparound case
-    ! ***************
-    !
-    ! We are required to consider case where part of a gridbox crosses the
-    ! prime meridian (Greenwich). For example, consider a regular gridbox
-    ! with longitudes 359 and 5. In this case we use two regular gridboxes.
-    ! One gridbox has longitudes 359 and 365, the second has -1 and 5.
-    !
-    ! Begin by creating 'second' gridbox values as described above.
-    cnt=0
-    DO j = 1, jlim
-       DO i = 1, ilim
-          ! Crude hack to avoid messy calculations near poles
-          IF (grid_lat(1,i,j) < 89.0 .AND. grid_lon(1,i,j) > 310.0) THEN
-             lonmin = MINVAL( grid_lon(1:4,i,j) )
-             IF ( MAXVAL(grid_lon(1:4,i,j)) > 180.0_pwp+lonmin ) cnt=cnt+1
-          END IF
-       END DO
-    END DO
-
-    IF (cnt > 0) THEN
-       ALLOCATE(grid_lon_wrap(5,cnt))
-       ALLOCATE(grid_lat_wrap(5,cnt))
-       cnt=0
-       DO j = 1, jlim
-          DO i = 1, ilim
-             ! Crude hack to avoid messy calculations near poles
-             IF (grid_lat(1,i,j) < 89.0 .AND. grid_lon(1,i,j) > 310.0) THEN
-                lonmin = MINVAL( grid_lon(1:4,i,j) )
-                IF ( MAXVAL(grid_lon(1:4,i,j)) > 180.0_pwp+lonmin ) THEN
-                   cnt=cnt+1
-                   ! latitudes stay the same
-                   grid_lat_wrap(1,cnt)=grid_lat(1,i,j)
-                   grid_lat_wrap(2,cnt)=grid_lat(2,i,j)
-                   grid_lat_wrap(3,cnt)=grid_lat(3,i,j)
-                   grid_lat_wrap(4,cnt)=grid_lat(4,i,j)
-                   ! change the longitudes
-                   grid_lon_wrap(1,cnt)=grid_lon(1,i,j)-360.0_pwp
-                   grid_lon_wrap(2,cnt)=grid_lon(2,i,j)-360.0_pwp
-                   grid_lon_wrap(3,cnt)=grid_lon(3,i,j)-360.0_pwp
-                   grid_lon_wrap(4,cnt)=grid_lon(4,i,j)-360.0_pwp
-                   ! Don't change longitudes east of prime meridian
-                   WHERE (grid_lon_wrap(1:4,cnt) < -180.0_pwp) &
-                        grid_lon_wrap(1:4,cnt)=grid_lon_wrap(1:4,cnt)+360.0_pwp
-                   ! Retain information about original gridbox location
-                   grid_lon_wrap(5,cnt)=grid_lon(5,i,j)
-                   grid_lat_wrap(5,cnt)=grid_lat(5,i,j)
-                END IF
-             END IF
-          END DO
-       END DO
-    END IF
-
-    ! Store number of wraparound gridboxes for later
-    wrap_cnt = cnt
-
-    ! Modify original gridbox value for first wraparound case - must be
-    ! done *after* second wraparound case above.
-    DO j = 1, jlim
-       DO i = 1, ilim
-          ! Crude hack to avoid messy calculations near poles
-          IF (grid_lat(1,i,j) < 89.0 .AND. grid_lon(1,i,j) > 310.0) THEN
-             lonmax = MAXVAL( grid_lon(1:4,i,j) )
-             WHERE (lonmax-grid_lon(1:4,i,j) > 180.0_pwp) &
-                  grid_lon(1:4,i,j)=grid_lon(1:4,i,j)+360.0_pwp
-          END IF
-       END DO
-    END DO
-
 
 ! ************************************
 ! Determine whether observations on PE
@@ -1054,10 +979,30 @@ CONTAINS
     ALLOCATE( temp(SIZE(longitude),SIZE(latitude),3) )
     temp(:,:,:) = 0.0_pwp
     DO jj = 1, SIZE(latitude)
+       lat_obs = latitude(jj)
+       ! **********************************************
+       ! *** Ignore observations outside AGRIF grid.***
+       ! **********************************************
+       !
+       ! See AGRIF_fixedgrids.in and coordinates.nc for AGRIF bounds.
+       ! Ignore observations on North and East boundaries.
+       IF(lat_obs < -50.0591764_pwp .OR. lat_obs >= 8.96321566_pwp) THEN
+             CYCLE
+       END IF
+       ! *********************************************
        DO ii = 1, SIZE(longitude)
           lon_obs = longitude(ii)
-          lat_obs = latitude(jj)
-
+          ! **********************************************
+          ! *** Ignore observations outside AGIRF grid.***
+          ! **********************************************
+          !
+          ! See AGRIF_fixedgrids.in and coordinates.nc for AGRIF bounds.
+          ! Ignore observations on North and East boundaries.
+          IF(lon_obs >= 69.75_pwp .AND. lon_obs < 289.75) THEN
+             CYCLE
+          END IF
+          ! *********************************************
+          !
           ! First consider case where obs located on vertex.
           ! We consider the bottom left vertex of each gridbox.
           vertexloop:DO j = 1, jlim
@@ -1134,133 +1079,62 @@ CONTAINS
     DEALLOCATE(grid_lon,grid_lat,grid_lat_max,grid_lat_min,grid_lon_max,&
          grid_lon_min)
 
-    wrap_true:IF (wrap_cnt > 0) THEN
-       ! *********************************
-       ! Enter main loop - wraparound case
-       ! *********************************
-       !
-       ! Temporary array to store if obs in gridbox and if so, to also store
-       ! gridbox coordinates.
-       DO jj = 1, SIZE(latitude)
-          DO ii = 1, SIZE(longitude)
-             lat_obs = latitude(jj)
-             lon_obs = longitude(ii)
-
-             ! First consider case where obs located on vertex.
-             ! We consider the bottom left vertex of each gridbox.
-             wrap_vertexloop:DO i = 1, wrap_cnt
-                IF ( ABS(grid_lat_wrap(1,i)-lat_obs) .LT. 1e-6_pwp ) THEN
-                   IF ( ABS(grid_lon_wrap(1,j)-lon_obs) .LT. 1e-6_pwp ) THEN
-                      temp(ii,jj,1)=temp(ii,jj,1)+1.0_pwp ! Indicates obs on PE
-                      temp(ii,jj,2)=grid_lon_wrap(5,i)
-                      temp(ii,jj,3)=grid_lat_wrap(5,i)
-                      tot_obs_gp_lcl=tot_obs_gp_lcl+1
-                      EXIT wrap_vertexloop
-                   END IF
-                END IF
-             END DO wrap_vertexloop
-
-             ! Next consider case where obs located inside gridbox
-             ! *********************************************************
-             ! To determine whether obs contained in gridbox, we compute
-             ! cross products of co-planar vectors. If all values
-             ! are negative, then obs is contained in gridbox. If a value
-             ! is zero then it is contained on a gridbox boundary. All
-             ! obs that are contained on the left or bottom boundaries
-             ! of a gridbox are considered to be contained in a gridbox.
-             ! Based on notes from 'NEMO documentation, section:
-             ! theoretical details of obs operator'.
-             ! *********************************************************
-
-             wrap_notvertex:IF (temp(ii,jj,1) .EQ. 0.0_pwp) THEN
-                wrap_gridloop:DO i = 1, wrap_cnt
-                   ! Cross product anti-commutative - careful with order
-                   CALL cross_prod_2d(grid_lon_wrap(1,i), grid_lat_wrap(1,i), &
-                        grid_lon_wrap(3,i), grid_lat_wrap(3,i), lon_obs, &
-                        lat_obs, c_prod_13)
-                   CALL cross_prod_2d(grid_lon_wrap(2,i), grid_lat_wrap(2,i), &
-                        grid_lon_wrap(1,i),grid_lat_wrap(1,i), lon_obs, &
-                        lat_obs, c_prod_21)
-                   CALL cross_prod_2d(grid_lon_wrap(3,i), grid_lat_wrap(3,i), &
-                        grid_lon_wrap(4,i), grid_lat_wrap(4,i), lon_obs, &
-                        lat_obs, c_prod_34)
-                   CALL cross_prod_2d(grid_lon_wrap(4,i), grid_lat_wrap(4,i), &
-                        grid_lon_wrap(2,i), grid_lat_wrap(2,i), lon_obs, &
-                        lat_obs, c_prod_42)
-
-                   ! Allow cross products for left hand and bottom
-                   ! boundaries to be zero
-                   IF (c_prod_13 .LE. 0.0_pwp .AND. c_prod_21 .LE. 0.0_pwp &
-                        .AND. c_prod_34 .LT. 0.0_pwp .AND. &
-                        c_prod_42 .LT. 0.0_pwp) THEN
-                      temp(ii,jj,1)=temp(ii,jj,1)+1.0_pwp ! Indicates obs on PE
-                      temp(ii,jj,2)=grid_lon_wrap(5,i)
-                      temp(ii,jj,3)=grid_lat_wrap(5,i)
-                      tot_obs_gp_lcl=tot_obs_gp_lcl+1
-                      EXIT wrap_gridloop
-                   END IF
-                END DO wrap_gridloop
-             END IF wrap_notvertex
-          END DO
-       END DO
-
-       ! Clean-up
-       DEALLOCATE(grid_lon_wrap,grid_lat_wrap)
-
-    END IF wrap_true
-
 
 ! *************************
 ! Format output for PDAFomi
 ! *************************
 
-    IF(tot_obs_gp_lcl .EQ. 0) THEN
-       WRITE(*,*)'ERROR: No obs on local PE. May need to modify algorithm.'
-       CALL abort_parallel()
-    END IF
-
-    ! Reduce 3d array of obs information to 2d array
-    ALLOCATE( obs_gp_lcl(tot_obs_gp_lcl,4) )
-    s=0 ! temporary counter
-    DO j=1,SIZE(latitude)
-       DO i=1,SIZE(longitude)
-          IF (temp(i,j,1) .EQ. 1.0_pwp) THEN
-             s=s+1
-             obs_gp_lcl(s,1)=i
-             obs_gp_lcl(s,2)=j
-             obs_gp_lcl(s,3)=temp(i,j,2) ! gridbox coordinate
-             obs_gp_lcl(s,4)=temp(i,j,3) ! gridbox coordinate
-          END IF
+    output:IF(tot_obs_gp_lcl .EQ. 0) THEN
+       ! Deal with case where no obs on PE by creating dummy
+       ! indices with negative value.
+       ALLOCATE( obs_gp_lcl(1,4) )
+       obs_gp_lcl(1,1)=-1
+       obs_gp_lcl(1,2)=-1
+       obs_gp_lcl(1,3)=-1
+       obs_gp_lcl(1,4)=-1
+    ELSE
+       ! Reduce 3d array of obs information to 2d array
+       ALLOCATE( obs_gp_lcl(tot_obs_gp_lcl,4) )
+       s=0 ! temporary counter
+       DO j=1,SIZE(latitude)
+          DO i=1,SIZE(longitude)
+             IF (temp(i,j,1) .EQ. 1.0_pwp) THEN
+                s=s+1
+                obs_gp_lcl(s,1)=i
+                obs_gp_lcl(s,2)=j
+                obs_gp_lcl(s,3)=temp(i,j,2) ! gridbox coordinate
+                obs_gp_lcl(s,4)=temp(i,j,3) ! gridbox coordinate
+             END IF
+          END DO
        END DO
-    END DO
+    END IF output
 
-    !! Useful code for debugging (in association with plot.py).
-    !! Determines how many times an observation is counted across all PEs.
-    !s=0
-    !ALLOCATE(debug_arr(SIZE(latitude)*SIZE(longitude)))
-    !debug_arr=0
-    !DO jj = 1, SIZE(latitude)
-    !   DO ii = 1, SIZE(longitude)
-    !      s=s+1
-    !      debug_arr(s)=temp(ii,jj,1)
-    !   END DO
-    !END DO
-    !ALLOCATE(debug_arr2(SIZE(latitude)*SIZE(longitude)))
-    !debug_arr2=0
-    !CALL MPI_AllReduce(debug_arr, debug_arr2, s, MPI_INT, MPI_Sum, COMM_filter, i )
-    !      !CALL MPI_Barrier(COMM_filter, i)
-    !IF (mype_filter == 0) THEN
-    !   OPEN(31, file = 'debug_arr2.txt', status = 'new')
-    !   DO i =1,s
-    !      WRITE (31, *) debug_arr2(i)
-    !   END DO
-    !   CLOSE(31)
-    !   WRITE(*,*) 's test',s,size(debug_arr2),debug_arr2
-    !END IF
-    !! Hack to make sure that output is correctly written before potential
-    !! crash elsehwere!
-    !CALL MPI_Barrier(COMM_filter, i)
-    !DEALLOCATE(debug_arr,debug_arr2)
+!!$    ! Useful code for debugging (in association with plot.py).
+!!$    ! Determines how many times an observation is counted across all PEs.
+!!$    s=0
+!!$    ALLOCATE(debug_arr(SIZE(latitude)*SIZE(longitude)))
+!!$    debug_arr=0
+!!$    DO jj = 1, SIZE(latitude)
+!!$       DO ii = 1, SIZE(longitude)
+!!$          s=s+1
+!!$          debug_arr(s)=temp(ii,jj,1)
+!!$       END DO
+!!$    END DO
+!!$    ALLOCATE(debug_arr2(SIZE(latitude)*SIZE(longitude)))
+!!$    debug_arr2=0
+!!$    CALL MPI_AllReduce(debug_arr, debug_arr2, s, MPI_INT, MPI_Sum, COMM_filter, i )
+!!$    !CALL MPI_Barrier(COMM_filter, i)
+!!$    IF (mype_filter == 0) THEN
+!!$       OPEN(31, file = 'debug_arr_child.txt', status = 'new')
+!!$       DO i =1,s
+!!$          WRITE (31, *) debug_arr2(i)
+!!$       END DO
+!!$       CLOSE(31)
+!!$    END IF
+!!$    ! Hack to make sure that output is correctly written before potential
+!!$    ! crash elsehwere!
+!!$    CALL MPI_Barrier(COMM_filter, i)
+!!$    DEALLOCATE(debug_arr,debug_arr2)
 
     ! Final clean-up
     DEALLOCATE(temp)
@@ -1310,9 +1184,9 @@ CONTAINS
 
 
     USE mod_parallel_pdaf, &
-         ONLY: nldi_par, nldj_par
+         ONLY: nldi_child, nldj_child
     USE mod_agrif_pdaf, &
-         ONLY: tmask_par
+         ONLY: tmask_child
 
     IMPLICIT NONE
 
@@ -1323,14 +1197,14 @@ CONTAINS
 
 
     ! Compute halo offset.
-    i0 = nldi_par - 1
-    j0 = nldj_par - 1
+    i0 = nldi_child - 1
+    j0 = nldj_child - 1
 
     land=.FALSE.
-    IF(tmask_par(vert_i+i0,vert_j+j0,1) .EQ. 0)     land=.TRUE. ! bottom left vertex
-    IF(tmask_par(vert_i+i0,vert_j+j0+1,1) .EQ. 0)   land=.TRUE. ! top left vertex
-    IF(tmask_par(vert_i+i0+1,vert_j+j0,1) .EQ. 0)   land=.TRUE. ! bottom right vertex
-    IF(tmask_par(vert_i+i0+1,vert_j+j0+1,1) .EQ. 0) land=.TRUE. ! top right vertex
+    IF(tmask_child(vert_i+i0,vert_j+j0,1) .EQ. 0)     land=.TRUE. ! bottom left vertex
+    IF(tmask_child(vert_i+i0,vert_j+j0+1,1) .EQ. 0)   land=.TRUE. ! top left vertex
+    IF(tmask_child(vert_i+i0+1,vert_j+j0,1) .EQ. 0)   land=.TRUE. ! bottom right vertex
+    IF(tmask_child(vert_i+i0+1,vert_j+j0+1,1) .EQ. 0) land=.TRUE. ! top right vertex
 
   END FUNCTION land_vertex_2d
 
@@ -1382,4 +1256,4 @@ CONTAINS
   END FUNCTION grt_cir_dis
 
 !$AGRIF_END_DO_NOT_TREAT
-END MODULE mod_obs_ssh_NEMO_pdafomi
+END MODULE mod_obs_ssh_child_pdafomi

@@ -6,6 +6,7 @@
 ! !INTERFACE:
 SUBROUTINE collect_state_pdaf(dim_p, state_p)
 !$AGRIF_DO_NOT_TREAT
+
 ! !DESCRIPTION:
 ! User-supplied routine for PDAF.
 ! Used in the filters: SEEK/SEIK/EnKF/LSEIK/ETKF/LETKF/ESTKF/LESTKF

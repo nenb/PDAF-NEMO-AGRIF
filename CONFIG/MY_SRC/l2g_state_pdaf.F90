@@ -25,7 +25,7 @@ SUBROUTINE l2g_state_pdaf(step, domain_p, dim_l, state_l, dim_p, state_p)
 
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
-       ONLY: coords_l, indx_dom_l_par, indx_dom_l_child
+       ONLY: coords_l, indx_dom_l_par, indx_dom_l_child, num_domains_par
   USE mod_statevector_pdaf, &
        ONLY: mpi_subd_vert_child, mpi_subd_vert_par, mpi_subd_lon_child, &
        mpi_subd_lon_par, var2d_p_offset_par, var2d_p_offset_child, &
@@ -50,7 +50,6 @@ SUBROUTINE l2g_state_pdaf(step, domain_p, dim_l, state_l, dim_p, state_p)
   INTEGER :: domain_p_child        ! Counter for local analysis domain on child grid
   INTEGER :: i, cnt                ! Counter
   INTEGER :: a, b, c               ! Variables for 3D state variable index
-  INTEGER :: tot_dom_l_par         ! Number of local domains on parent grid
   INTEGER :: i_par, j_par          ! Grid coordinates for local analysis domain
   INTEGER :: i_child, j_child      ! Grid coordinates for local analysis domain
   INTEGER :: i0, j0                ! Halo offset for local PE
@@ -64,74 +63,80 @@ SUBROUTINE l2g_state_pdaf(step, domain_p, dim_l, state_l, dim_p, state_p)
 ! *** Initialize local state vector ***
 ! *************************************
 
-#ifndef key_agrif
+! ***********
+! Parent grid
+! ***********
 
-  ! *****************************************************************
-  ! Statevector counts ocean *and* land points, whereas local domains
-  ! only count ocean points. Hence we need to introduce a conversion
-  ! between statevector and local domains.
-  ! *****************************************************************
+  ! Determine whether local domain belongs to parent or child grid.
+  domain_par:IF(domain_p <= num_domains_par) THEN
 
-  ! Compute i,j indices for parent grid.
-  i_par = indx_dom_l_par(1, domain_p)
-  j_par = indx_dom_l_par(2, domain_p)
+     ! *****************************************************************
+     ! Statevector counts ocean *and* land points, whereas local domains
+     ! only count ocean points. Hence we need to introduce a conversion
+     ! between statevector and local domains.
+     ! *****************************************************************
 
-  ! Compute horizontal in statevector.
-  loc_2d = (j_par - 1)*(mpi_subd_lon_par) + i_par
+     ! Compute i,j indices for parent grid.
+     i_par = indx_dom_l_par(1, domain_p)
+     j_par = indx_dom_l_par(2, domain_p)
 
-  ! Compute vertical dimension of local state vector.
-  dim_vert = ( dim_l - SIZE(var2d_p_offset_par) )/( SIZE(var3d_p_offset_par) )
+     ! Compute horizontal in statevector.
+     loc_2d = (j_par - 1)*(mpi_subd_lon_par) + i_par
 
-  ! Compute halo offset for parent grid.
-  i0 = nldi_par - 1
-  j0 = nldj_par - 1
+     ! Compute vertical dimension of local state vector.
+     dim_vert = ( dim_l - SIZE(var2d_p_offset_par) )/( SIZE(var3d_p_offset_par) )
 
-  ! Compute array for converting vertical coordinate in local state
-  ! vector to vertical coordinate on parent grid. 
-  ALLOCATE(v_coord(dim_vert))
-  cnt=0
-  DO i = 1, mpi_subd_vert_par
-     IF(tmask_par(i_par+i0, j_par+j0, i) == 1) THEN
-        cnt = cnt + 1
-        v_coord(cnt) = i
-     END IF
-  END DO
+     ! Compute halo offset for parent grid.
+     i0 = nldi_par - 1
+     j0 = nldj_par - 1
 
-  ! The local state vector elements are the 2D state variables as well as
-  ! the values at different depths for the 3D state variables.
-  DO i = 1, dim_l
-     IF( i <= SIZE(var2d_p_offset_par) ) THEN
-        state_p( var2d_p_offset_par(i) + loc_2d ) = state_l(i)
-     ELSE
-        ! Now, fill the local state vector with 3D state variables.
-        ! Each 3D state variable has dimension nx*ny*nz. We first break
-        ! this into chunks of size nx*ny. Then we identify each chunk as a
-        ! different element of the local state vector.
-        !
-        ! Counter for 3D state variables in local state vector.
-        a = i - SIZE(var2d_p_offset_par)
-        ! Counter for 3D state variable.
-        b = INT( CEILING( REAL(a)/REAL(dim_vert) ) )
-        ! Counter for vertical coordinate.
-        c = MOD(a-1,dim_vert)
-        state_p( var3d_p_offset_par(b) + &
-             (mpi_subd_lon_par*mpi_subd_lat_par*(v_coord(c)-1)) + loc_2d ) = &
-             state_l(i)
-     END IF
-  END DO
+     ! Compute array for converting vertical coordinate in local state
+     ! vector to vertical coordinate on parent grid. 
+     ALLOCATE(v_coord(dim_vert))
+     cnt=0
+     DO i = 1, mpi_subd_vert_par
+        IF(tmask_par(i_par+i0, j_par+j0, i) == 1) THEN
+           cnt = cnt + 1
+           v_coord(cnt) = i
+        END IF
+     END DO
 
-  !Clean-up
-  DEALLOCATE(v_coord)
+     ! The local state vector elements are the 2D state variables as well as
+     ! the values at different depths for the 3D state variables.
+     DO i = 1, dim_l
+        IF( i <= SIZE(var2d_p_offset_par) ) THEN
+           state_p( var2d_p_offset_par(i) + loc_2d ) = state_l(i)
+        ELSE
+           ! Now, fill the local state vector with 3D state variables.
+           ! Each 3D state variable has dimension nx*ny*nz. We first break
+           ! this into chunks of size nx*ny. Then we identify each chunk as a
+           ! different element of the local state vector.
+           !
+           ! Counter for 3D state variables in local state vector.
+           a = i - SIZE(var2d_p_offset_par)
+           ! Counter for 3D state variable.
+           b = INT( CEILING( REAL(a)/REAL(dim_vert) ) )
+           ! Counter for vertical coordinate.
+           c = MOD(a-1,dim_vert)
+           state_p( var3d_p_offset_par(b) + &
+                (mpi_subd_lon_par*mpi_subd_lat_par*(v_coord(c)-1)) + loc_2d ) = &
+                state_l(i)
+        END IF
+     END DO
 
-#else
+     !Clean-up
+     DEALLOCATE(v_coord)
+  END IF domain_par
 
-  WRITE(*,*) 'TEST g2l ERROR, need to remove NEMO grid here'
-  CALL abort_parallel()
 
-  ! Child grid
-  child_grd: IF(domain_p > tot_dom_l_par) THEN
+! **********
+! Child grid
+! **********
+
+#if defined key_agrif
+  domain_child: IF(domain_p > num_domains_par) THEN
      ! Convert to local domain value for child grid.
-     domain_p_child = domain_p - tot_dom_l_par
+     domain_p_child = domain_p - num_domains_par
 
      ! Compute i,j indices for child grid.
      i_child = indx_dom_l_child(1, domain_p_child)
@@ -183,7 +188,7 @@ SUBROUTINE l2g_state_pdaf(step, domain_p, dim_l, state_l, dim_p, state_p)
 
      !Clean-up
      DEALLOCATE(v_coord)
-  END IF child_grd
+  END IF domain_child
 #endif
 
 !$AGRIF_END_DO_NOT_TREAT

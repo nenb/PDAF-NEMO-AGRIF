@@ -31,9 +31,9 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
   USE mod_kind_pdaf
   USE mod_parallel_pdaf, ONLY: abort_parallel, mype_ens, jpiglo_par, jpjglo_par, &
        jpiglo_child, jpjglo_child, jpk_child, jpk_par
-  USE mod_assimilation_pdaf, ONLY: istate_fname_t, istate_fname_u, istate_fname_v, &
-       screen, wght, istate_fname_t_child, istate_fname_u_child, &
-       istate_fname_v_child
+  USE mod_assimilation_pdaf, ONLY: istate_t_par, istate_u_par, istate_v_par, &
+       screen, wght, istate_t_child, istate_u_child, &
+       istate_v_child
   USE mod_statevector_pdaf, ONLY: fill2d_par_ensarray, fill3d_par_ensarray, &
        fill2d_child_ensarray, fill3d_child_ensarray
   USE netcdf
@@ -113,9 +113,9 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 ! ***********
 
   ! Files holding initial state estimate
-  istate_ncfile(1) = TRIM(istate_fname_t)
-  istate_ncfile(2) = TRIM(istate_fname_u)
-  istate_ncfile(3) = TRIM(istate_fname_v)
+  istate_ncfile(1) = TRIM(istate_t_par)
+  istate_ncfile(2) = TRIM(istate_u_par)
+  istate_ncfile(3) = TRIM(istate_v_par)
 
   IF(screen > 1) THEN
      IF(mype_ens == 0) WRITE (*,'(/9x, a, 3x, a, 3x, a, 3x, a)')&
@@ -220,9 +220,9 @@ SUBROUTINE init_ens_pdaf(filtertype, dim_p, dim_ens, state_p, Uinv, &
 ! ***********
 
   ! Files holding initial state estimate
-  istate_ncfile(1) = TRIM(istate_fname_t_child)
-  istate_ncfile(2) = TRIM(istate_fname_u_child)
-  istate_ncfile(3) = TRIM(istate_fname_v_child)
+  istate_ncfile(1) = TRIM(istate_t_child)
+  istate_ncfile(2) = TRIM(istate_u_child)
+  istate_ncfile(3) = TRIM(istate_v_child)
 
   IF(screen > 1) THEN
      IF(mype_ens == 0) WRITE (*,'(/9x, a, 3x, a, 3x, a, 3x, a)')&

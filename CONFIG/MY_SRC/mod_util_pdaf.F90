@@ -191,18 +191,24 @@ CONTAINS
          ONLY: mype_ens
     USE mod_assimilation_pdaf, &
          ONLY: filtertype, subtype, dim_ens, delt_obs, child_dt_fac, &
-         screen, forget, local_range,&
-         locweight, srange,&
-         istate_fname_t,&
-         istate_fname_u, istate_fname_v, istate_fname_t_child,&
-         istate_fname_u_child, istate_fname_v_child
-    USE mod_obs_ssh_NEMO_pdafomi, &
-         ONLY: assim_ssh_NEMO, rms_ssh_NEMO, file_ssh_NEMO, &
-         twin_exp_ssh_NEMO, noise_amp_ssh_NEMO
+         screen, forget, local_range_par, local_range_child,&
+         locweight, srange_par, srange_child, istate_t_par,&
+         istate_u_par, istate_v_par, istate_t_child,&
+         istate_u_child, istate_v_child
+    USE mod_obs_ssh_par_pdafomi, &
+         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
+         twin_exp_ssh_par, noise_amp_ssh_par
+    USE mod_obs_ssh_child_pdafomi, &
+         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
+         twin_exp_ssh_child, noise_amp_ssh_child
     USE mod_agrif_pdaf, &
-         ONLY: lowlim_ssh_NEMO, upplim_ssh_NEMO, lowlim_sal_NEMO, upplim_sal_NEMO, &
-         lowlim_temp_NEMO, upplim_temp_NEMO, lowlim_uvel_NEMO, upplim_uvel_NEMO, &
-         lowlim_vvel_NEMO, upplim_vvel_NEMO
+         ONLY: lowlim_ssh_par, upplim_ssh_par, lowlim_sal_par, &
+         upplim_sal_par, lowlim_temp_par, upplim_temp_par, &
+         lowlim_uvel_par, upplim_uvel_par, lowlim_vvel_par, &
+         upplim_vvel_par, lowlim_ssh_child, upplim_ssh_child, &
+         lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
+         upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
+         lowlim_vvel_child, upplim_vvel_child
 
     IMPLICIT NONE
     !EOP
@@ -212,15 +218,20 @@ CONTAINS
 
     NAMELIST /pdaf_nml/ filtertype, subtype, dim_ens,&
          delt_obs, child_dt_fac, screen, forget,&
-         local_range, locweight, srange,&
-         istate_fname_t,&
-         istate_fname_u, istate_fname_v, istate_fname_t_child,&
-         istate_fname_u_child, istate_fname_v_child, assim_ssh_NEMO, &
-         rms_ssh_NEMO, file_ssh_NEMO, twin_exp_ssh_NEMO, &
-         noise_amp_ssh_NEMO, lowlim_ssh_NEMO, upplim_ssh_NEMO, &
-         lowlim_sal_NEMO, upplim_sal_NEMO, lowlim_temp_NEMO, &
-         upplim_temp_NEMO, lowlim_uvel_NEMO, upplim_uvel_NEMO, &
-         lowlim_vvel_NEMO, upplim_vvel_NEMO
+         local_range_par, local_range_child, locweight, &
+         srange_par, srange_child, istate_t_par,&
+         istate_u_par, istate_v_par, istate_t_child,&
+         istate_u_child, istate_v_child, assim_ssh_par, &
+         rms_ssh_par, file_ssh_par, twin_exp_ssh_par, &
+         noise_amp_ssh_par, lowlim_ssh_par, upplim_ssh_par, &
+         lowlim_sal_par, upplim_sal_par, lowlim_temp_par, &
+         upplim_temp_par, lowlim_uvel_par, upplim_uvel_par, &
+         lowlim_vvel_par, upplim_vvel_par, assim_ssh_child, &
+         rms_ssh_child, file_ssh_child, twin_exp_ssh_child, &
+         noise_amp_ssh_child, lowlim_ssh_child, upplim_ssh_child, &
+         lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
+         upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
+         lowlim_vvel_child, upplim_vvel_child
 
     ! ****************************************************
     ! ***   Initialize PDAF parameters from namelist   ***
@@ -245,30 +256,47 @@ CONTAINS
        WRITE (*,'(5x,a,i10)')    'child_dt_fac ', child_dt_fac
        WRITE (*,'(5x,a,i10)')    'screen       ', screen
        WRITE (*,'(5x,a,f10.2)')  'forget       ', forget
-       WRITE (*,'(5x,a,es10.2)') 'local_range  ', local_range
+       WRITE (*,'(5x,a,es10.2)') 'local_range_par ', local_range_par
+       WRITE (*,'(5x,a,es10.2)') 'local_range_child ', local_range_child
        WRITE (*,'(5x,a,i10)')    'locweight    ', locweight
-       WRITE (*,'(5x,a,es10.2)') 'srange       ', srange
-       WRITE (*,'(5x,a,a)')  'istate_fname_t   ', istate_fname_t
-       WRITE (*,'(5x,a,a)')  'istate_fname_u   ', istate_fname_u
-       WRITE (*,'(5x,a,a)')  'istate_fname_v   ', istate_fname_v
-       WRITE (*,'(5x,a,a)')  'istate_fname_t_child  ', istate_fname_t_child
-       WRITE (*,'(5x,a,a)')  'istate_fname_u_child  ', istate_fname_u_child
-       WRITE (*,'(5x,a,a)')  'istate_fname_v_child  ', istate_fname_v_child
-       WRITE (*,'(5x,a,l1)') 'assim_ssh_NEMO   ', assim_ssh_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'rms_ssh_NEMO ', rms_ssh_NEMO
-       WRITE (*,'(5x,a,a)')  'file_ssh_NEMO    ', file_ssh_NEMO
-       WRITE (*,'(5x,a,l1)')     'twin_exp_ssh_NEMO  ', twin_exp_ssh_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'noise_amp_ssh_NEMO ', noise_amp_ssh_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'lowlim_ssh_NEMO ', lowlim_ssh_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'upplim_ssh_NEMO ', upplim_ssh_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'lowlim_sal_NEMO ', lowlim_sal_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'upplim_sal_NEMO ', upplim_sal_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'lowlim_temp_NEMO ', lowlim_temp_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'upplim_temp_NEMO ', upplim_temp_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'lowlim_uvel_NEMO ', lowlim_uvel_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'upplim_uvel_NEMO ', upplim_uvel_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'lowlim_vvel_NEMO ', lowlim_vvel_NEMO
-       WRITE (*,'(5x,a,es10.2)') 'upplim_vvel_NEMO ', upplim_vvel_NEMO
+       WRITE (*,'(5x,a,es10.2)') 'srange_par  ', srange_par
+       WRITE (*,'(5x,a,es10.2)') 'srange_child ', srange_child
+       WRITE (*,'(5x,a,a)')  'istate_t_par   ', istate_t_par
+       WRITE (*,'(5x,a,a)')  'istate_u_par   ', istate_u_par
+       WRITE (*,'(5x,a,a)')  'istate_v_par   ', istate_v_par
+       WRITE (*,'(5x,a,a)')  'istate_t_child  ', istate_t_child
+       WRITE (*,'(5x,a,a)')  'istate_u_child  ', istate_u_child
+       WRITE (*,'(5x,a,a)')  'istate_v_child  ', istate_v_child
+       WRITE (*,'(5x,a,l1)') 'assim_ssh_par   ', assim_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'rms_ssh_par ', rms_ssh_par
+       WRITE (*,'(5x,a,a)')  'file_ssh_par    ', file_ssh_par
+       WRITE (*,'(5x,a,l1)')     'twin_exp_ssh_par  ', twin_exp_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'noise_amp_ssh_par ', noise_amp_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_ssh_par ', lowlim_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'upplim_ssh_par ', upplim_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_sal_par ', lowlim_sal_par
+       WRITE (*,'(5x,a,es10.2)') 'upplim_sal_par ', upplim_sal_par
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_temp_par ', lowlim_temp_par
+       WRITE (*,'(5x,a,es10.2)') 'upplim_temp_par ', upplim_temp_par
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_uvel_par ', lowlim_uvel_par
+       WRITE (*,'(5x,a,es10.2)') 'upplim_uvel_par ', upplim_uvel_par
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_vvel_par ', lowlim_vvel_par
+       WRITE (*,'(5x,a,es10.2)') 'upplim_vvel_par ', upplim_vvel_par
+       WRITE (*,'(5x,a,l1)') 'assim_ssh_child   ', assim_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'rms_ssh_child ', rms_ssh_child
+       WRITE (*,'(5x,a,a)')  'file_ssh_child    ', file_ssh_child
+       WRITE (*,'(5x,a,l1)')     'twin_exp_ssh_child  ', twin_exp_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'noise_amp_ssh_child ', noise_amp_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_ssh_child ', lowlim_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'upplim_ssh_child ', upplim_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_sal_child ', lowlim_sal_child
+       WRITE (*,'(5x,a,es10.2)') 'upplim_sal_child ', upplim_sal_child
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_temp_child ', lowlim_temp_child
+       WRITE (*,'(5x,a,es10.2)') 'upplim_temp_child ', upplim_temp_child
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_uvel_child ', lowlim_uvel_child
+       WRITE (*,'(5x,a,es10.2)') 'upplim_uvel_child ', upplim_uvel_child
+       WRITE (*,'(5x,a,es10.2)') 'lowlim_vvel_child ', lowlim_vvel_child
+       WRITE (*,'(5x,a,es10.2)') 'upplim_vvel_child ', upplim_vvel_child
        WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
     END IF showconf

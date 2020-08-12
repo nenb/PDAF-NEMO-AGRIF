@@ -10,6 +10,10 @@ MODULE mod_agrif_pdaf
 
   IMPLICIT NONE
 
+  ! Current date in format YYYYMMDD
+  INTEGER :: ndastp_par
+  INTEGER :: ndastp_child
+
   ! Indices for location of S and T fields in 4D array
   INTEGER :: jp_tem_child
   INTEGER :: jp_tem_par
@@ -40,17 +44,29 @@ MODULE mod_agrif_pdaf
   REAL(pwp), ALLOCATABLE, DIMENSION(:,:,:) :: tmask_par
   REAL(pwp), ALLOCATABLE, DIMENSION(:,:,:) :: tmask_child
 
-  ! Thresholds for rejecting observations/updates
-  REAL(pwp) :: lowlim_ssh_NEMO
-  REAL(pwp) :: upplim_ssh_NEMO
-  REAL(pwp) :: lowlim_temp_NEMO
-  REAL(pwp) :: upplim_temp_NEMO
-  REAL(pwp) :: lowlim_sal_NEMO
-  REAL(pwp) :: upplim_sal_NEMO
-  REAL(pwp) :: lowlim_uvel_NEMO
-  REAL(pwp) :: upplim_uvel_NEMO
-  REAL(pwp) :: lowlim_vvel_NEMO
-  REAL(pwp) :: upplim_vvel_NEMO
+  ! Thresholds for rejecting observations/updates - parent grid
+  REAL(pwp) :: lowlim_ssh_par
+  REAL(pwp) :: upplim_ssh_par
+  REAL(pwp) :: lowlim_temp_par
+  REAL(pwp) :: upplim_temp_par
+  REAL(pwp) :: lowlim_sal_par
+  REAL(pwp) :: upplim_sal_par
+  REAL(pwp) :: lowlim_uvel_par
+  REAL(pwp) :: upplim_uvel_par
+  REAL(pwp) :: lowlim_vvel_par
+  REAL(pwp) :: upplim_vvel_par
+
+  ! Thresholds for rejecting observations/updates - child grid
+  REAL(pwp) :: lowlim_ssh_child
+  REAL(pwp) :: upplim_ssh_child
+  REAL(pwp) :: lowlim_temp_child
+  REAL(pwp) :: upplim_temp_child
+  REAL(pwp) :: lowlim_sal_child
+  REAL(pwp) :: upplim_sal_child
+  REAL(pwp) :: lowlim_uvel_child
+  REAL(pwp) :: upplim_uvel_child
+  REAL(pwp) :: lowlim_vvel_child
+  REAL(pwp) :: upplim_vvel_child
 
 !$AGRIF_END_DO_NOT_TREAT
 
@@ -69,7 +85,7 @@ CONTAINS
     USE par_oce, ONLY: jpiglo, jpjglo, jpk, jpi, jpj, jpnij, &
          jp_tem, jp_sal, jpni, jpnj
     USE dom_oce, ONLY: nldi, nldj, nlei, nlej, nimpp, njmpp, rdt, &
-         nimppt, njmppt, gphit, glamt, narea, tmask
+         nimppt, njmppt, gphit, glamt, narea, tmask, ndastp
     USE mod_parallel_pdaf, ONLY: jpiglo_par, jpjglo_par, jpk_par, &
          jpi_par, jpj_par, jpnij_par, jpni_par, jpnj_par, jpiglo_child, &
          jpjglo_child, jpk_child, nldi_par, narea_par, nldj_par, nlei_par, &
@@ -101,6 +117,7 @@ CONTAINS
        njmpp_par = njmpp
        rdt_par = rdt
        narea_par = narea
+       ndastp_par = ndastp
 
        ALLOCATE(nimppt_par(jpnij_par))
        ALLOCATE(njmppt_par(jpnij_par))
@@ -133,6 +150,7 @@ CONTAINS
        njmpp_child = njmpp
        rdt_child = rdt
        narea_child = narea
+       ndastp_child = ndastp
 
        ALLOCATE(nimppt_child(jpnij_child))
        ALLOCATE(njmppt_child(jpnij_child))
@@ -166,6 +184,8 @@ CONTAINS
     njmpp_par = njmpp
     rdt_par = rdt
     narea_par = narea
+    ndastp_par = ndastp
+
     ALLOCATE(nimppt_par(jpnij_par))
     ALLOCATE(njmppt_par(jpnij_par))
     ALLOCATE(gphit_par(jpi_par,jpj_par))
@@ -349,8 +369,8 @@ CONTAINS
           DO i = 1, mpi_subd_lon_par
              ! Check to return sensible values
              IF( (state_p(i+(j-1)*mpi_subd_lon_par + ssh_p_offset_par, 1) > &
-                  lowlim_ssh_NEMO) .AND.  (state_p(i+(j-1)*mpi_subd_lon_par + &
-                  ssh_p_offset_par, 1) < upplim_ssh_NEMO) ) THEN
+                  lowlim_ssh_par) .AND.  (state_p(i+(j-1)*mpi_subd_lon_par + &
+                  ssh_p_offset_par, 1) < upplim_ssh_par) ) THEN
                 sshb(i+i0,j+j0) = state_p(i+(j-1)*mpi_subd_lon_par &
                      + ssh_p_offset_par, 1)
              END IF
@@ -370,8 +390,8 @@ CONTAINS
           DO i = 1, mpi_subd_lon_child
              ! Check to return sensible values
              IF( (state_p(i+(j-1)*mpi_subd_lon_child + ssh_p_offset_child, 1) > &
-                  lowlim_ssh_NEMO) .AND.  (state_p(i+(j-1)*mpi_subd_lon_child + &
-                  ssh_p_offset_child, 1) < upplim_ssh_NEMO) ) THEN
+                  lowlim_ssh_child) .AND.  (state_p(i+(j-1)*mpi_subd_lon_child + &
+                  ssh_p_offset_child, 1) < upplim_ssh_child) ) THEN
                 sshb(i+i0,j+j0) = state_p(i+(j-1)*mpi_subd_lon_child &
                      + ssh_p_offset_child, 1)
              END IF
@@ -549,10 +569,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                      (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + t_p_offset_par, 1) &
-                     > lowlim_temp_NEMO) THEN
+                     > lowlim_temp_par) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                         (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + t_p_offset_par, 1) &
-                        < upplim_temp_NEMO) THEN
+                        < upplim_temp_par) THEN
                       tsb(i+i0,j+j0,k,jp_tem_par) = state_p(i+(j-1)*mpi_subd_lon_par &
                            + (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + t_p_offset_par, 1)
                    END IF
@@ -567,10 +587,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                      (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + s_p_offset_par, 1) &
-                     > lowlim_sal_NEMO) THEN
+                     > lowlim_sal_par) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                         (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + s_p_offset_par, 1) &
-                        < upplim_sal_NEMO) THEN
+                        < upplim_sal_par) THEN
                      tsb(i+i0,j+j0,k,jp_sal_par) = &
                           state_p(i+(j-1)*mpi_subd_lon_par + &
                           (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + s_p_offset_par, 1)
@@ -586,10 +606,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                      (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + u_p_offset_par, 1) &
-                     > lowlim_uvel_NEMO) THEN
+                     > lowlim_uvel_par) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                         (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + u_p_offset_par, 1) &
-                        < upplim_uvel_NEMO) THEN
+                        < upplim_uvel_par) THEN
                       ub(i+i0,j+j0,k) = &
                            state_p(i+(j-1)*mpi_subd_lon_par + &
                            (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + u_p_offset_par, 1)
@@ -605,10 +625,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                      (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + v_p_offset_par, 1) &
-                     > lowlim_vvel_NEMO) THEN
+                     > lowlim_vvel_par) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_par + &
                         (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + v_p_offset_par, 1) &
-                        < upplim_vvel_NEMO) THEN
+                        < upplim_vvel_par) THEN
                       vb(i+i0,j+j0,k) = &
                            state_p(i+(j-1)*mpi_subd_lon_par + &
                            (k-1)*mpi_subd_lat_par*mpi_subd_lon_par + v_p_offset_par, 1)
@@ -633,10 +653,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                      (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + t_p_offset_child, 1) &
-                     > lowlim_temp_NEMO) THEN
+                     > lowlim_temp_child) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                         (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + t_p_offset_child, 1) &
-                        < upplim_temp_NEMO) THEN
+                        < upplim_temp_child) THEN
                       tsb(i+i0,j+j0,k,jp_tem_child) = &
                            state_p(i+(j-1)*mpi_subd_lon_child + &
                            (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + t_p_offset_child, 1)
@@ -652,10 +672,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                      (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + s_p_offset_child, 1) &
-                     > lowlim_sal_NEMO) THEN
+                     > lowlim_sal_child) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                         (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + s_p_offset_child, 1) &
-                        < upplim_sal_NEMO) THEN
+                        < upplim_sal_child) THEN
                       tsb(i+i0,j+j0,k,jp_sal_child) = &
                            state_p(i+(j-1)*mpi_subd_lon_child + &
                            (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + s_p_offset_child, 1)
@@ -671,10 +691,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                      (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + u_p_offset_child, 1) &
-                     > lowlim_uvel_NEMO) THEN
+                     > lowlim_uvel_child) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                         (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + u_p_offset_child, 1) &
-                        < upplim_uvel_NEMO) THEN
+                        < upplim_uvel_child) THEN
                       ub(i+i0,j+j0,k) = &
                            state_p(i+(j-1)*mpi_subd_lon_child + &
                            (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + u_p_offset_child, 1)
@@ -690,10 +710,10 @@ CONTAINS
                 ! Check to return sensible values
                 IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                      (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + v_p_offset_child, 1) &
-                     > lowlim_vvel_NEMO) THEN
+                     > lowlim_vvel_child) THEN
                    IF( state_p(i+(j-1)*mpi_subd_lon_child + &
                         (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + v_p_offset_child, 1) &
-                        < upplim_vvel_NEMO) THEN
+                        < upplim_vvel_child) THEN
                       vb(i+i0,j+j0,k) = &
                            state_p(i+(j-1)*mpi_subd_lon_child + &
                            (k-1)*mpi_subd_lat_child*mpi_subd_lon_child + v_p_offset_child, 1)

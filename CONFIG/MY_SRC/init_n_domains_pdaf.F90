@@ -23,12 +23,14 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
 
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
-       ONLY: indx_dom_l_par, indx_dom_l_child
+       ONLY: indx_dom_l_par, indx_dom_l_child, num_domains_child, &
+       num_domains_par
   USE mod_statevector_pdaf, &
        ONLY: mpi_subd_lon_child, mpi_subd_lon_par, mpi_subd_lat_child, &
        mpi_subd_lat_par
   USE mod_parallel_pdaf, &
-       ONLY: nldi_par, nldj_par, nldi_child, nldj_child, mype_filter, abort_parallel
+       ONLY: nldi_par, nldj_par, nldi_child, nldj_child, nimpp_par, &
+       njmpp_par, mype_filter
   USE mod_agrif_pdaf, &
        ONLY: tmask_par, tmask_child
 
@@ -39,8 +41,9 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   INTEGER, INTENT(out) :: n_domains_p !< PE-local number of analysis domains
 
   ! Local variables
-  INTEGER :: i, j, cnt  ! Counters
-  INTEGER :: i0, j0     ! Halo offset
+  INTEGER :: i, j, cnt      ! Counters
+  INTEGER :: i_glbl, j_glbl ! Indices on global grid
+  INTEGER :: i0, j0         ! Halo offset
 
 
 ! ************************************
@@ -52,22 +55,11 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   ! the number of grid points at the surface
   ! where tmask is 1 ie horizontal localization
   ! is used, and land points are ignored.
-  !
-  ! In the case of NEMO+AGRIF, the calculation
-  ! is slightly more complicated. The same
-  ! method of horizontal localization is used
-  ! as before, except now any points in the
-  ! NEMO grid that are also contained in the
-  ! AGRIF grid are ignored. This is so that an
-  ! update is only performed on the AGRIF grid,
-  ! which is necessary for theoretical reasons.
-  ! These updated values on the AGRIF grid are
-  ! then used to update the respective values
-  ! on the NEMO grid at the end of the PDAF
-  ! analysis step.
   ! *******************************************
 
-#ifndef key_agrif
+! ***********
+! Parent grid
+! ***********
 
   ! Initialisation.
   n_domains_p = 0
@@ -76,14 +68,56 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   i0 = nldi_par - 1
   j0 = nldj_par - 1
 
-  ! Use horizontal localization, hence number of domains corresponds to
-  ! number of (x,y) points on parent grid (plus child grid if AGRIF used).
+  ! Use horizontal localization.
   DO j = 1, mpi_subd_lat_par
      DO i = 1, mpi_subd_lon_par
         ! Only include as local domain if ocean at surface.
-        IF(tmask_par(i+i0, j+j0, 1) == 1.0_pwp) n_domains_p = n_domains_p + 1
+        mask: IF(tmask_par(i+i0, j+j0, 1) == 1.0_pwp) THEN
+#if defined key_agrif
+!!$           ! **********************************
+!!$           ! THIS METHOD IS CURRENTLY NOT USED!
+!!$           ! **********************************
+!!$           !
+!!$           ! *******************************************
+!!$           ! In the case of NEMO+AGRIF, the calculation
+!!$           ! is slightly more complicated. The same
+!!$           ! method of horizontal localization is used
+!!$           ! as before, except now any points in the
+!!$           ! NEMO grid that are also contained in the
+!!$           ! AGRIF grid are ignored. This is so that an
+!!$           ! update is only performed on the AGRIF grid,
+!!$           ! which is necessary for theoretical reasons.
+!!$           ! These updated values on the AGRIF grid are
+!!$           ! then used to update the respective values
+!!$           ! on the NEMO grid at the end of the PDAF
+!!$           ! analysis step.
+!!$           ! *******************************************
+!!$           !
+!!$           ! Only include NEMO surface ocean points outside
+!!$           ! or on boundaries of AGRIF grid.
+!!$           i_glbl = i - 1 + nimpp_par + i0
+!!$           j_glbl = j - 1 + njmpp_par + j0
+!!$           IF(j_glbl > 134 .AND. j_glbl < 268) THEN
+!!$              IF(i_glbl > 435 .AND. i_glbl < 715) THEN
+!!$                 CYCLE
+!!$              END IF
+!!$           END IF
+!!$           ! *******************************************
+           n_domains_p = n_domains_p + 1
+#else
+           ! Include all NEMO surface ocean points.
+           n_domains_p = n_domains_p + 1
+#endif
+        END IF mask
      END DO
   END DO
+
+  ! Store number of domains on parent grid for later.
+  num_domains_par = n_domains_p
+
+  ! ***********************************
+  ! Store local domain i,j index values
+  ! ***********************************
 
   ! Treat case where no valid local domains on parent grid.
   IF(n_domains_p > 0) THEN
@@ -94,21 +128,57 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
      cnt=0
      DO j = 1, mpi_subd_lat_par
         DO i = 1, mpi_subd_lon_par
-           ! Only include as local domain if ocean at surface.
-           IF(tmask_par(i+i0, j+j0, 1) == 1.0_pwp) THEN
+           indx_mask: IF(tmask_par(i+i0, j+j0, 1) == 1.0_pwp) THEN
+#if defined key_agrif
+!!$              ! **********************************
+!!$              ! THIS METHOD IS CURRENTLY NOT USED!
+!!$              ! **********************************
+!!$              !
+!!$              ! *******************************************
+!!$              ! In the case of NEMO+AGRIF, the calculation
+!!$              ! is slightly more complicated. The same
+!!$              ! method of horizontal localization is used
+!!$              ! as before, except now any points in the
+!!$              ! NEMO grid that are also contained in the
+!!$              ! AGRIF grid are ignored. This is so that an
+!!$              ! update is only performed on the AGRIF grid,
+!!$              ! which is necessary for theoretical reasons.
+!!$              ! These updated values on the AGRIF grid are
+!!$              ! then used to update the respective values
+!!$              ! on the NEMO grid at the end of the PDAF
+!!$              ! analysis step.
+!!$              ! *******************************************
+!!$              !
+!!$              ! Only include NEMO surface ocean points outside
+!!$              ! or on boundaries of AGRIF grid.
+!!$              i_glbl = i - 1 + nimpp_par + i0
+!!$              j_glbl = j - 1 + njmpp_par + j0
+!!$              IF(j_glbl > 134 .AND. j_glbl < 268) THEN
+!!$                 IF(i_glbl > 435 .AND. i_glbl < 715) THEN
+!!$                    CYCLE
+!!$                 END IF
+!!$              END IF
+!!$              ! *******************************************
               cnt=cnt+1
               indx_dom_l_par(1,cnt) = i
               indx_dom_l_par(2,cnt) = j
-           END IF
+#else
+              ! Include all NEMO surface ocean points.
+              cnt=cnt+1
+              indx_dom_l_par(1,cnt) = i
+              indx_dom_l_par(2,cnt) = j
+#endif
+           END IF indx_mask
         END DO
      END DO
   END IF
 
-#else
 
-  WRITE(*,*) 'TEST init_n_domains ERROR, need to remove NEMO grid here'
-  CALL abort_parallel()
+! **********
+! Child grid
+! **********
 
+#if defined key_agrif
   ! Compute halo offset on child grid.
   i0 = nldi_child - 1
   j0 = nldj_child - 1
@@ -124,8 +194,16 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
         IF(tmask_child(i+i0, j+j0, 1) == 1.0_pwp) THEN
            n_domains_p = n_domains_p + 1
            cnt = cnt + 1
+        END IF
      END DO
   END DO
+
+  ! Store number of domains on child grid for later.
+  num_domains_child = cnt
+
+  ! ***********************************
+  ! Store local domain i,j index values
+  ! ***********************************
 
   ! Treat case where no valid local domains on child grid.
   IF(cnt > 0 ) THEN
@@ -147,6 +225,10 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   END IF
 #endif
 
+! ****************
+! No local domains
+! ****************
+
   ! Hack for when no valid local domains on PE. We set the dimension of the
   ! local domain to 1, and ensure (see init_dim_obs_l) that the dimension of the
   ! observations for this local domain is zero. Hence no update will be performed
@@ -154,6 +236,7 @@ SUBROUTINE init_n_domains_pdaf(step, n_domains_p)
   IF(n_domains_p == 0) THEN
      WRITE(*,'(8x,a, i3)') 'WARNING: No valid local domains on PE:', mype_filter
      n_domains_p = 1
+     num_domains_par = 1
      ALLOCATE(indx_dom_l_par(2,1))
      indx_dom_l_par(1,1) = 1
      indx_dom_l_par(2,1) = 1

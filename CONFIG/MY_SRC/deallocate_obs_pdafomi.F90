@@ -10,8 +10,8 @@ SUBROUTINE deallocate_obs_pdafomi(step)
   ! Include PDAFomi function
   USE PDAFomi, ONLY: PDAFomi_deallocate_obs
   ! Include observation types (rename generic name)
-  USE mod_obs_ssh_NEMO_pdafomi, ONLY: obs_ssh_NEMO => thisobs
-  USE mod_obs_B_pdafomi, ONLY: obs_B => thisobs
+  USE mod_obs_ssh_par_pdafomi, ONLY: obs_ssh_par => thisobs
+  USE mod_obs_ssh_child_pdafomi, ONLY: obs_ssh_child => thisobs
   USE mod_assimilation_pdaf, ONLY: indx_dom_l_par, indx_dom_l_child
 
   IMPLICIT NONE
@@ -24,8 +24,8 @@ SUBROUTINE deallocate_obs_pdafomi(step)
 ! *** Deallocate observation arrays ***
 ! *************************************
 
-  CALL PDAFomi_deallocate_obs(obs_ssh_NEMO)
-  CALL PDAFomi_deallocate_obs(obs_B)
+  CALL PDAFomi_deallocate_obs(obs_ssh_par)
+  CALL PDAFomi_deallocate_obs(obs_ssh_child)
 
   ! Tidy-up from init_n_domains_pdaf
   IF(ALLOCATED(indx_dom_l_par)) DEALLOCATE(indx_dom_l_par)

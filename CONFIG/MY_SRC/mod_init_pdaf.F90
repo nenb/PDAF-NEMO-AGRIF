@@ -33,23 +33,29 @@ CONTAINS
     USE mod_assimilation_pdaf, &
          ONLY: dim_state_p, dim_state_p_par, dim_state_p_child, screen,&
          filtertype, subtype, dim_ens, incremental, covartype, &
-         type_forget, forget, rank_analysis_enkf, locweight, local_range, &
-         srange, type_trans, type_sqrt, delt_obs, state_p_pointer, &
-         status_pointer, child_dt_fac
+         type_forget, forget, rank_analysis_enkf, locweight, local_range_par, &
+         local_range_child, srange_par, srange_child, type_trans, type_sqrt, &
+         delt_obs, state_p_pointer, status_pointer, child_dt_fac
     USE mod_statevector_pdaf, ONLY: calc_statevector_dim, calc_offset, &
          calc_dim, mpi_subd_lat_child, mpi_subd_lon_child, mpi_subd_lat_par, &
          mpi_subd_lon_par, var2d_p_offset_child, var2d_p_offset_par, &
          var3d_p_offset_child, var3d_p_offset_par, halo_2d_par, halo_2d_child
     USE mod_util_pdaf, ONLY: init_info_pdaf, read_config_pdaf
     USE PDAF_interfaces_module, ONLY: PDAF_set_ens_pointer
-    USE mod_obs_ssh_NEMO_pdafomi, &
-         ONLY: assim_ssh_NEMO, rms_ssh_NEMO, file_ssh_NEMO, &
-         twin_exp_ssh_NEMO, noise_amp_ssh_NEMO
+    USE mod_obs_ssh_par_pdafomi, &
+         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
+         twin_exp_ssh_par, noise_amp_ssh_par
+    USE mod_obs_ssh_child_pdafomi, &
+         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
+         twin_exp_ssh_child, noise_amp_ssh_child
     USE mod_agrif_pdaf, &
-         ONLY: lowlim_ssh_NEMO, upplim_ssh_NEMO, lowlim_sal_NEMO, &
-         upplim_sal_NEMO, lowlim_temp_NEMO, upplim_temp_NEMO, &
-         lowlim_uvel_NEMO, upplim_uvel_NEMO, lowlim_vvel_NEMO, &
-         upplim_vvel_NEMO
+         ONLY: lowlim_ssh_par, upplim_ssh_par, lowlim_sal_par, &
+         upplim_sal_par, lowlim_temp_par, upplim_temp_par, &
+         lowlim_uvel_par, upplim_uvel_par, lowlim_vvel_par, &
+         upplim_vvel_par, lowlim_ssh_child, upplim_ssh_child, &
+         lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
+         upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
+         lowlim_vvel_child, upplim_vvel_child
 
     IMPLICIT NONE
 
@@ -58,6 +64,7 @@ CONTAINS
 ! Calls: read_config_pdaf
 ! Calls: init_pdaf_info
 ! Calls: PDAF_init
+! Calls: PDAF_set_ens_pointer
 ! Calls: PDAF_get_state
 !EOP
 
@@ -71,11 +78,11 @@ CONTAINS
 
 ! External subroutines
     EXTERNAL :: init_ens_pdaf            ! Ensemble initialization
-    EXTERNAL :: next_observation_pdaf, & ! Provide time step, model time, and
+    EXTERNAL :: next_observation_pdaf    ! Provide time step, model time, and
                                          ! dimension of next observation
-         distribute_state_pdaf, &        ! Routine to distribute a state vector
+    EXTERNAL :: distribute_state_pdaf    ! Routine to distribute a state vector
                                          ! to model fields
-         prepoststep_ens_pdaf            ! User supplied pre/poststep routine
+    EXTERNAL :: prepoststep_ens_pdaf     ! User supplied pre/poststep routine
 
 
 ! ***************************
@@ -147,36 +154,64 @@ CONTAINS
 ! ***   Settings for analysis steps  - used in call-back routines   ***
 ! *********************************************************************
 
-    ! *** Forecast length (time interval between analysis steps) ***
     delt_obs = 24      ! Number of time steps between analysis/assimilation steps
-    child_dt_fac = 0   ! Timestep factor between child and parent grid
+    child_dt_fac = 0   ! Timestep factor between child and parent grid. Default
+                       ! value is 0 (*DO NOT CHANGE*) to indicate no child grid used.
 
-    ! *** specifications for observations ***
+! ***************************************
+! *** Specifications for observations ***
+! ***************************************
+
     ! *** Localization settings
-    locweight = 0     ! Type of localizating weighting
-    !   (0) constant weight of 1
-    !   (1) exponentially decreasing with SRANGE
-    !   (2) use 5th-order polynomial
-    !   (3) regulated localization of R with mean error variance
-    !   (4) regulated localization of R with single-point error variance
-    local_range = 1.0e5  ! Range in grid points for observation domain in local filters
-    srange = local_range  ! Support range for 5th-order polynomial
-    ! or range for 1/e for exponential weighting
-    assim_ssh_NEMO = .FALSE.      ! Switch for assimilating SSH on NEMO grid
-    rms_ssh_NEMO = 1.0_pwp        ! RMS for SSH on NEMO grid
-    file_ssh_NEMO = ''            ! Switch for assimilating SSH on NEMO grid
-    twin_exp_ssh_NEMO = .FALSE.   ! Switch for twin experiment with SSH on NEMO grid
-    noise_amp_ssh_NEMO = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, NEMO grid)
-    lowlim_ssh_NEMO = -3.0_pwp    ! Lower limit for rejecting SSH on NEMO grid
-    upplim_ssh_NEMO = 3.0_pwp     ! Upper limit for rejecting SSH on NEMO grid
-    lowlim_temp_NEMO = 10.0_pwp   ! Lower limit for rejecting T on NEMO grid
-    upplim_temp_NEMO = 35.0_pwp   ! Upper limit for rejecting T on NEMO grid
-    lowlim_sal_NEMO = 0.0_pwp     ! Lower limit for rejecting S on NEMO grid
-    upplim_sal_NEMO = 45.0_pwp    ! Upper limit for rejecting S on NEMO grid
-    lowlim_uvel_NEMO = -10.0_pwp  ! Lower limit for rejecting U on NEMO grid
-    upplim_uvel_NEMO = 10.0_pwp   ! Upper limit for rejecting U on NEMO grid
-    lowlim_vvel_NEMO = -10.0_pwp  ! Lower limit for rejecting V on NEMO grid
-    upplim_vvel_NEMO = 10.0_pwp   ! Upper limit for rejecting V on NEMO grid
+    locweight = 0  ! Type of localizating weighting
+                   !  (0) constant weight of 1
+                   !  (1) exponentially decreasing with SRANGE
+                   !  (2) use 5th-order polynomial
+                   !  (3) regulated localization of R with mean error variance
+                   !  (4) regulated localization of R with single-point error variance
+    local_range_par = 1.0e5 ! Range in grid points for observation domain in local filters
+    srange_par = local_range_par ! Support range for 5th-order polynomial - NEMO grid
+    local_range_child = 2.0e4  ! Range in grid points for observation domain in local filters
+    srange_child = local_range_child ! Support range for 5th-order polynomial - AGRIF grid
+                                     ! or range for 1/e for exponential weighting
+
+    ! *** Parent grid ***
+    assim_ssh_par = .FALSE.      ! Switch for assimilating SSH on NEMO grid
+    rms_ssh_par = 1.0_pwp        ! RMS for SSH on NEMO grid
+    file_ssh_par = ''            ! Switch for assimilating SSH on NEMO grid
+    twin_exp_ssh_par = .FALSE.   ! Switch for twin experiment with SSH on NEMO grid
+    noise_amp_ssh_par = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, NEMO grid)
+    lowlim_ssh_par = -3.0_pwp    ! Lower limit for rejecting SSH on NEMO grid
+    upplim_ssh_par = 3.0_pwp     ! Upper limit for rejecting SSH on NEMO grid
+    lowlim_temp_par = 10.0_pwp   ! Lower limit for rejecting T on NEMO grid
+    upplim_temp_par = 35.0_pwp   ! Upper limit for rejecting T on NEMO grid
+    lowlim_sal_par = 0.0_pwp     ! Lower limit for rejecting S on NEMO grid
+    upplim_sal_par = 45.0_pwp    ! Upper limit for rejecting S on NEMO grid
+    lowlim_uvel_par = -10.0_pwp  ! Lower limit for rejecting U on NEMO grid
+    upplim_uvel_par = 10.0_pwp   ! Upper limit for rejecting U on NEMO grid
+    lowlim_vvel_par = -10.0_pwp  ! Lower limit for rejecting V on NEMO grid
+    upplim_vvel_par = 10.0_pwp   ! Upper limit for rejecting V on NEMO grid
+
+    ! *** Child grid ***
+    assim_ssh_child = .FALSE.      ! Switch for assimilating SSH on AGRIF grid
+    rms_ssh_child = 1.0_pwp        ! RMS for SSH on AGRIF grid
+    file_ssh_child = ''            ! Switch for assimilating SSH on AGRIF grid
+    twin_exp_ssh_child = .FALSE.   ! Switch for twin experiment with SSH on AGRIF grid
+    noise_amp_ssh_child = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, AGRIF grid)
+    lowlim_ssh_child = -3.0_pwp    ! Lower limit for rejecting SSH on AGRIF grid
+    upplim_ssh_child = 3.0_pwp     ! Upper limit for rejecting SSH on AGRIF grid
+    lowlim_temp_child = 10.0_pwp   ! Lower limit for rejecting T on AGRIF grid
+    upplim_temp_child = 35.0_pwp   ! Upper limit for rejecting T on AGRIF grid
+    lowlim_sal_child = 0.0_pwp     ! Lower limit for rejecting S on AGRIF grid
+    upplim_sal_child = 45.0_pwp    ! Upper limit for rejecting S on AGRIF grid
+    lowlim_uvel_child = -10.0_pwp  ! Lower limit for rejecting U on AGRIF grid
+    upplim_uvel_child = 10.0_pwp   ! Upper limit for rejecting U on AGRIF grid
+    lowlim_vvel_child = -10.0_pwp  ! Lower limit for rejecting V on AGRIF grid
+    upplim_vvel_child = 10.0_pwp   ! Upper limit for rejecting V on AGRIF grid
+
+! **************************
+! Namelist and screen output
+! **************************
 
     ! *** Read namelist file for PDAF ***
     CALL read_config_pdaf()
@@ -249,7 +284,7 @@ CONTAINS
     ! Initialise arrays for storing halo regions for observation
     ! operator on parent grid.
     !
-    ! Number of halo points required - see mod_agrif_pdaf for further
+    ! Number of halo points required -> see mod_agrif_pdaf for further
     ! details.
     halo_dim = mpi_subd_lat_par + mpi_subd_lon_par + 1
 
@@ -260,7 +295,7 @@ CONTAINS
     ! Initialise arrays for storing halo regions for observation
     ! operator on child grid.
     !
-    ! Number of halo points required - see mod_agrif_pdaf for further
+    ! Number of halo points required -> see mod_agrif_pdaf for further
     ! details.
     halo_dim = mpi_subd_lat_child + mpi_subd_lon_child + 1
 

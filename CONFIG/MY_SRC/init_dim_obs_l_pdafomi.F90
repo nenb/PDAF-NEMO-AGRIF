@@ -8,11 +8,11 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 !$AGRIF_DO_NOT_TREAT
 
   ! Include functions for different observations
-  USE mod_obs_ssh_NEMO_pdafomi, ONLY: init_dim_obs_l_ssh_NEMO
-  USE mod_obs_B_pdafomi, ONLY: init_dim_obs_l_B
+  USE mod_obs_ssh_par_pdafomi, ONLY: init_dim_obs_l_ssh_par
+  USE mod_obs_ssh_child_pdafomi, ONLY: init_dim_obs_l_ssh_child
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
-       ONLY: indx_dom_l_par, indx_dom_l_child
+       ONLY: indx_dom_l_par, indx_dom_l_child, num_domains_par
   USE mod_statevector_pdaf, &
        ONLY: mpi_subd_lat_par, mpi_subd_lon_child, mpi_subd_lon_par
   USE mod_parallel_pdaf, &
@@ -29,8 +29,8 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   INTEGER, INTENT(out) :: dim_obs_l  !< Local dimension of observation vector
 
 ! *** local variables ***
-  INTEGER :: dim_obs_l_ssh_NEMO ! Dimension of observation ssh_NEMO
-  INTEGER :: dim_obs_l_B ! Dimension of observation type B
+  INTEGER :: dim_obs_l_ssh_par ! Dimension of observation ssh_par
+  INTEGER :: dim_obs_l_ssh_child ! Dimension of observation type B
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
   INTEGER :: domain_p_child ! Counter for local analysis domain on child grid
   INTEGER :: i, j           ! Coordinates for local analysis domain
@@ -50,7 +50,7 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   ! Hack for dealing with case when no valid local domains on PE. See
   ! init_n_domains for further details.
   land = .FALSE.
-  IF (domain_p == 1) THEN
+  IF (domain_p == 1 .AND. num_domains_par > 0) THEN
      ! Compute halo offset
      i0 = nldi_par - 1
      j0 = nldj_par - 1
@@ -66,17 +66,17 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   ! so that no update will be computed for these (invalid) local domains. Otherwise
   ! call PDAF-OMI routines.
   IF(land) THEN
-     dim_obs_l_ssh_NEMO = 0
-     dim_obs_l_B = 0
+     dim_obs_l_ssh_par = 0
+     dim_obs_l_ssh_child = 0
   ELSE
      ! Call init_dim_obs_l specific for each observation
      ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
-     CALL init_dim_obs_l_ssh_NEMO(domain_p, step, dim_obs_f, dim_obs_l_ssh_NEMO, offset_obs_l, offset_obs_f)
-     CALL init_dim_obs_l_B(domain_p, step, dim_obs_f, dim_obs_l_B, offset_obs_l, offset_obs_f)
+     CALL init_dim_obs_l_ssh_par(domain_p, step, dim_obs_f, dim_obs_l_ssh_par, offset_obs_l, offset_obs_f)
+     CALL init_dim_obs_l_ssh_child(domain_p, step, dim_obs_f, dim_obs_l_ssh_child, offset_obs_l, offset_obs_f)
   END IF
 
   ! Compute overall local observation dimension
-  dim_obs_l = dim_obs_l_ssh_NEMO + dim_obs_l_B
+  dim_obs_l = dim_obs_l_ssh_par + dim_obs_l_ssh_child
 
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_obs_l_pdafomi

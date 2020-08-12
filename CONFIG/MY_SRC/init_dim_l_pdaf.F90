@@ -22,7 +22,7 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
-       ONLY: coords_l, indx_dom_l_par, indx_dom_l_child
+       ONLY: coords_l, indx_dom_l_par, indx_dom_l_child, num_domains_par
   USE mod_statevector_pdaf, &
        ONLY: mpi_subd_vert_child, mpi_subd_vert_par, var2d_p_offset_par, &
        var2d_p_offset_child, var3d_p_offset_par, var3d_p_offset_child
@@ -41,7 +41,6 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 
 ! *** local variables ***
   INTEGER :: cnt, indx        ! Counters
-  INTEGER :: tot_dom_l_par    ! Number of local domains on parent grid
   INTEGER :: i_par, j_par     ! Grid coordinates for local analysis domain
   INTEGER :: i_child, j_child ! Grid coordinates for local analysis domain
   INTEGER :: i0, j0           ! Halo offset for local PE
@@ -54,11 +53,9 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
 ! *** Initialize coordinates of local domain ***
 ! **********************************************
 
-  ! Crude method for calculation of total number of local domains on parent grid.
-  tot_dom_l_par = SIZE(indx_dom_l_par(1,:))
-
   ! Determine whether local domain belongs to parent or child grid.
-  IF(domain_p <= tot_dom_l_par) THEN
+  ! Index for domain_p starts at 0.
+  IF(domain_p <= num_domains_par) THEN
      ! Compute halo offset for parent grid.
      i0 = nldi_par - 1
      j0 = nldj_par - 1
@@ -71,9 +68,13 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
      ! Convert local domain coordinates to radians (as required by PDAF-OMI)
      coords_l(1)=lon*rad_conv
      coords_l(2)=lat*rad_conv
-  ELSE
+  END IF
+
+#if defined key_agrif
+  ! Determine whether local domain belongs to parent or child grid.
+  IF(domain_p > num_domains_par) THEN
      ! Convert to local domain value for child grid.
-     domain_p_child = domain_p - tot_dom_l_par
+     domain_p_child = domain_p - num_domains_par
      ! Compute halo offset on child grid.
      i0 = nldi_child - 1
      j0 = nldj_child - 1
@@ -87,6 +88,7 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
      coords_l(1)=lon*rad_conv
      coords_l(2)=lat*rad_conv
   END IF
+#endif
 
 ! ****************************************
 ! *** Initialize local state dimension ***
@@ -105,7 +107,7 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
   cnt=0
 
   ! Parent grid
-  IF(domain_p <= tot_dom_l_par) THEN
+  IF(domain_p <= num_domains_par) THEN
      ! Compute halo offset for parent grid.
      i0 = nldi_par - 1
      j0 = nldj_par - 1
@@ -117,10 +119,13 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
         IF(tmask_par(i_par+i0, j_par+j0, indx) == 1) cnt = cnt + 1
      END DO
      dim_l = SIZE(var2d_p_offset_par) + (SIZE(var3d_p_offset_par)*cnt)
-  ! Child grid
-  ELSE
+  END IF
+
+#if defined key_agrif
+  ! Child grid.
+  IF(domain_p > num_domains_par) THEN
      ! Convert to local domain value for child grid.
-     domain_p_child = domain_p - tot_dom_l_par
+     domain_p_child = domain_p - num_domains_par
      ! Compute halo offset on child grid.
      i0 = nldi_child - 1
      j0 = nldj_child - 1
@@ -133,6 +138,7 @@ SUBROUTINE init_dim_l_pdaf(step, domain_p, dim_l)
      END DO
      dim_l = SIZE(var2d_p_offset_child) + (SIZE(var3d_p_offset_child)*cnt)
   END IF
+#endif
 
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_l_pdaf

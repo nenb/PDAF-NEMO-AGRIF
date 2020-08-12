@@ -143,14 +143,16 @@ MODULE mod_assimilation_pdaf
   ! (0) use random orthonormal transformation orthogonal to (1,...,1)^T
   ! (1) use identity transformation
   !    ! LSEIK/LETKF/LESTKF
-  REAL(pwp)    :: local_range   ! Range for local observation domain
+  REAL(pwp) :: local_range_par  ! Range for local observation domain - NEMO grid
+  REAL(pwp) :: local_range_child ! Range for local observation domain - AGRIF grid
   INTEGER :: locweight     ! Type of localizing weighting of observations
   !   (0) constant weight of 1
   !   (1) exponentially decreasing with SRANGE
   !   (2) use 5th-order polynomial
   !   (3) regulated localization of R with mean error variance
   !   (4) regulated localization of R with single-point error variance
-  REAL(pwp)    :: srange        ! Support range for 5th order polynomial
+  REAL(pwp)    :: srange_par  ! Support range for 5th order polynomial - NEMO grid
+  REAL(pwp)    :: srange_child ! Support range for 5th order polynomial - AGRIF grid
   !   or radius for 1/e for exponential weighting
   !    ! SEIK-subtype4/LSEIK-subtype4/ESTKF/LESTKF
   INTEGER :: type_sqrt     ! Type of the transform matrix square-root 
@@ -158,13 +160,13 @@ MODULE mod_assimilation_pdaf
 
   !    ! File input - available as namelist option
   ! Parent grid
-  CHARACTER (len=110) :: istate_fname_t  ! file for t initial state estimate
-  CHARACTER (len=110) :: istate_fname_u  ! file for u initial state estimate
-  CHARACTER (len=110) :: istate_fname_v  ! file for v initial state estimate
+  CHARACTER (len=110) :: istate_t_par  ! file for t initial state estimate
+  CHARACTER (len=110) :: istate_u_par  ! file for u initial state estimate
+  CHARACTER (len=110) :: istate_v_par  ! file for v initial state estimate
   ! Child grid
-  CHARACTER (len=110) :: istate_fname_t_child  ! file for t initial state estimate
-  CHARACTER (len=110) :: istate_fname_u_child  ! file for u initial state estimate
-  CHARACTER (len=110) :: istate_fname_v_child  ! file for v initial state estimate
+  CHARACTER (len=110) :: istate_t_child  ! file for t initial state estimate
+  CHARACTER (len=110) :: istate_u_child  ! file for u initial state estimate
+  CHARACTER (len=110) :: istate_v_child  ! file for v initial state estimate
   !    ! Other variables - _NOT_ available as command line options!
   INTEGER :: covartype     ! For SEIK: Definition of ensemble covar matrix
   ! (0): Factor (r+1)^-1 (or N^-1)
@@ -190,6 +192,8 @@ MODULE mod_assimilation_pdaf
   REAL(pwp) :: coords_l(2)      ! Coordinates of local analysis domain
   REAL(pwp), ALLOCATABLE :: indx_dom_l_par(:,:)   ! Indices of local analysis domain
   REAL(pwp), ALLOCATABLE :: indx_dom_l_child(:,:) ! Indices of local analysis domain
+  INTEGER :: num_domains_par   ! Number of local analysis domains on parent grid
+  INTEGER :: num_domains_child ! Number of local analysis domains on child grid
 
 !$OMP THREADPRIVATE(coords_l)
 
