@@ -10,6 +10,8 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   ! Include functions for different observations
   USE mod_obs_ssh_par_pdafomi, ONLY: init_dim_obs_l_ssh_par
   USE mod_obs_ssh_child_pdafomi, ONLY: init_dim_obs_l_ssh_child
+  USE mod_obs_fake_ssh_par_pdafomi, ONLY: init_dim_obs_l_fake_ssh_par
+  USE mod_obs_fake_ssh_child_pdafomi, ONLY: init_dim_obs_l_fake_ssh_child
   USE mod_kind_pdaf
   USE mod_assimilation_pdaf, &
        ONLY: indx_dom_l_par, indx_dom_l_child, num_domains_par
@@ -30,7 +32,9 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
 
 ! *** local variables ***
   INTEGER :: dim_obs_l_ssh_par ! Dimension of observation ssh_par
-  INTEGER :: dim_obs_l_ssh_child ! Dimension of observation type B
+  INTEGER :: dim_obs_l_ssh_child ! Dimension of observation ssh_child
+  INTEGER :: dim_obs_l_fake_ssh_par ! Dimension of observation fake_ssh_par
+  INTEGER :: dim_obs_l_fake_ssh_child ! Dimension of observation fake_ssh_child
   INTEGER :: offset_obs_l, offset_obs_f  ! local and full offsets
   INTEGER :: domain_p_child ! Counter for local analysis domain on child grid
   INTEGER :: i, j           ! Coordinates for local analysis domain
@@ -68,15 +72,20 @@ SUBROUTINE init_dim_obs_l_pdafomi(domain_p, step, dim_obs_f, dim_obs_l)
   IF(land) THEN
      dim_obs_l_ssh_par = 0
      dim_obs_l_ssh_child = 0
+     dim_obs_l_fake_ssh_par = 0
+     dim_obs_l_fake_ssh_child = 0
   ELSE
      ! Call init_dim_obs_l specific for each observation
      ! The order of the calls has to be consistent with that in obs_op_f_pdafomi
      CALL init_dim_obs_l_ssh_par(domain_p, step, dim_obs_f, dim_obs_l_ssh_par, offset_obs_l, offset_obs_f)
      CALL init_dim_obs_l_ssh_child(domain_p, step, dim_obs_f, dim_obs_l_ssh_child, offset_obs_l, offset_obs_f)
+     CALL init_dim_obs_l_fake_ssh_par(domain_p, step, dim_obs_f, dim_obs_l_fake_ssh_par, offset_obs_l, offset_obs_f)
+     CALL init_dim_obs_l_fake_ssh_child(domain_p, step, dim_obs_f, dim_obs_l_fake_ssh_child, offset_obs_l, offset_obs_f)
   END IF
 
   ! Compute overall local observation dimension
-  dim_obs_l = dim_obs_l_ssh_par + dim_obs_l_ssh_child
+  dim_obs_l = dim_obs_l_ssh_par + dim_obs_l_ssh_child + dim_obs_l_fake_ssh_par + &
+       dim_obs_l_fake_ssh_child
 
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE init_dim_obs_l_pdafomi

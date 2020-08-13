@@ -10,6 +10,8 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
   ! Include functions for different observations
   USE mod_obs_ssh_par_pdafomi, ONLY: obs_op_f_ssh_par
   USE mod_obs_ssh_child_pdafomi, ONLY: obs_op_f_ssh_child
+  USE mod_obs_fake_ssh_par_pdafomi, ONLY: obs_op_f_fake_ssh_par
+  USE mod_obs_fake_ssh_child_pdafomi, ONLY: obs_op_f_fake_ssh_child
 
   IMPLICIT NONE
 
@@ -35,6 +37,8 @@ SUBROUTINE obs_op_f_pdafomi(step, dim_p, dim_obs_f, state_p, ostate_f)
   ! are ordered in the full state vector
   CALL obs_op_f_ssh_par(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
   CALL obs_op_f_ssh_child(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
+  CALL obs_op_f_fake_ssh_par(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
+  CALL obs_op_f_fake_ssh_child(dim_p, dim_obs_f, state_p, ostate_f, offset_obs_f)
 
 !$AGRIF_END_DO_NOT_TREAT
 END SUBROUTINE obs_op_f_pdafomi

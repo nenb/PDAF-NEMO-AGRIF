@@ -42,12 +42,6 @@ CONTAINS
          var3d_p_offset_child, var3d_p_offset_par, halo_2d_par, halo_2d_child
     USE mod_util_pdaf, ONLY: init_info_pdaf, read_config_pdaf
     USE PDAF_interfaces_module, ONLY: PDAF_set_ens_pointer
-    USE mod_obs_ssh_par_pdafomi, &
-         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
-         twin_exp_ssh_par, noise_amp_ssh_par
-    USE mod_obs_ssh_child_pdafomi, &
-         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
-         twin_exp_ssh_child, noise_amp_ssh_child
     USE mod_agrif_pdaf, &
          ONLY: lowlim_ssh_par, upplim_ssh_par, lowlim_sal_par, &
          upplim_sal_par, lowlim_temp_par, upplim_temp_par, &
@@ -56,6 +50,18 @@ CONTAINS
          lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
          upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
          lowlim_vvel_child, upplim_vvel_child
+    USE mod_obs_ssh_par_pdafomi, &
+         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
+         twin_exp_ssh_par, noise_amp_ssh_par
+    USE mod_obs_ssh_child_pdafomi, &
+         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
+         twin_exp_ssh_child, noise_amp_ssh_child
+    USE mod_obs_fake_ssh_par_pdafomi, &
+         ONLY: assim_fake_ssh_par, rms_fake_ssh_par, file_fake_ssh_par, &
+         twin_exp_fake_ssh_par, noise_amp_fake_ssh_par
+    USE mod_obs_fake_ssh_child_pdafomi, &
+         ONLY: assim_fake_ssh_child, rms_fake_ssh_child, file_fake_ssh_child, &
+         twin_exp_fake_ssh_child, noise_amp_fake_ssh_child
 
     IMPLICIT NONE
 
@@ -208,6 +214,21 @@ CONTAINS
     upplim_uvel_child = 10.0_pwp   ! Upper limit for rejecting U on AGRIF grid
     lowlim_vvel_child = -10.0_pwp  ! Lower limit for rejecting V on AGRIF grid
     upplim_vvel_child = 10.0_pwp   ! Upper limit for rejecting V on AGRIF grid
+
+    ! *** Parent grid - synthetic (fake) observations ***
+    assim_fake_ssh_par = .FALSE.      ! Switch for assimilating SSH on NEMO grid
+    rms_fake_ssh_par = 1.0_pwp        ! RMS for SSH on NEMO grid
+    file_fake_ssh_par = ''            ! Switch for assimilating SSH on NEMO grid
+    twin_exp_fake_ssh_par = .FALSE.   ! Switch for twin experiment with SSH on NEMO grid
+    noise_amp_fake_ssh_par = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, NEMO grid)
+
+    ! *** Child grid - synthetic (fake) observations ***
+    assim_fake_ssh_child = .FALSE.      ! Switch for assimilating SSH on AGRIF grid
+    rms_fake_ssh_child = 1.0_pwp        ! RMS for SSH on AGRIF grid
+    file_fake_ssh_child = ''            ! Switch for assimilating SSH on AGRIF grid
+    twin_exp_fake_ssh_child = .FALSE.   ! Switch for twin experiment with SSH on AGRIF grid
+    noise_amp_fake_ssh_child = 0.1_pwp  ! Noise amplitude for twin experiment (SSH, AGRIF grid)
+
 
 ! **************************
 ! Namelist and screen output

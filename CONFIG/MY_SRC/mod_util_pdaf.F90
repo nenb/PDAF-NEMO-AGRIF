@@ -195,12 +195,6 @@ CONTAINS
          locweight, srange_par, srange_child, istate_t_par,&
          istate_u_par, istate_v_par, istate_t_child,&
          istate_u_child, istate_v_child
-    USE mod_obs_ssh_par_pdafomi, &
-         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
-         twin_exp_ssh_par, noise_amp_ssh_par
-    USE mod_obs_ssh_child_pdafomi, &
-         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
-         twin_exp_ssh_child, noise_amp_ssh_child
     USE mod_agrif_pdaf, &
          ONLY: lowlim_ssh_par, upplim_ssh_par, lowlim_sal_par, &
          upplim_sal_par, lowlim_temp_par, upplim_temp_par, &
@@ -209,6 +203,18 @@ CONTAINS
          lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
          upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
          lowlim_vvel_child, upplim_vvel_child
+    USE mod_obs_ssh_par_pdafomi, &
+         ONLY: assim_ssh_par, rms_ssh_par, file_ssh_par, &
+         twin_exp_ssh_par, noise_amp_ssh_par
+    USE mod_obs_ssh_child_pdafomi, &
+         ONLY: assim_ssh_child, rms_ssh_child, file_ssh_child, &
+         twin_exp_ssh_child, noise_amp_ssh_child
+    USE mod_obs_fake_ssh_par_pdafomi, &
+         ONLY: assim_fake_ssh_par, rms_fake_ssh_par, file_fake_ssh_par, &
+         twin_exp_fake_ssh_par, noise_amp_fake_ssh_par
+    USE mod_obs_fake_ssh_child_pdafomi, &
+         ONLY: assim_fake_ssh_child, rms_fake_ssh_child, file_fake_ssh_child, &
+         twin_exp_fake_ssh_child, noise_amp_fake_ssh_child
 
     IMPLICIT NONE
     !EOP
@@ -231,7 +237,11 @@ CONTAINS
          noise_amp_ssh_child, lowlim_ssh_child, upplim_ssh_child, &
          lowlim_sal_child, upplim_sal_child, lowlim_temp_child, &
          upplim_temp_child, lowlim_uvel_child, upplim_uvel_child, &
-         lowlim_vvel_child, upplim_vvel_child
+         lowlim_vvel_child, upplim_vvel_child, assim_fake_ssh_par, &
+         rms_fake_ssh_par, file_fake_ssh_par, twin_exp_fake_ssh_par, &
+         noise_amp_fake_ssh_par, assim_fake_ssh_child, &
+         rms_fake_ssh_child, file_fake_ssh_child, twin_exp_fake_ssh_child, &
+         noise_amp_fake_ssh_child
 
     ! ****************************************************
     ! ***   Initialize PDAF parameters from namelist   ***
@@ -297,6 +307,16 @@ CONTAINS
        WRITE (*,'(5x,a,es10.2)') 'upplim_uvel_child ', upplim_uvel_child
        WRITE (*,'(5x,a,es10.2)') 'lowlim_vvel_child ', lowlim_vvel_child
        WRITE (*,'(5x,a,es10.2)') 'upplim_vvel_child ', upplim_vvel_child
+       WRITE (*,'(5x,a,l1)') 'assim_fake_ssh_par   ', assim_fake_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'rms_fake_ssh_par ', rms_fake_ssh_par
+       WRITE (*,'(5x,a,a)')  'file_fake_ssh_par    ', file_fake_ssh_par
+       WRITE (*,'(5x,a,l1)')     'twin_exp_fake_ssh_par  ', twin_exp_fake_ssh_par
+       WRITE (*,'(5x,a,es10.2)') 'noise_amp_fake_ssh_par ', noise_amp_fake_ssh_par
+       WRITE (*,'(5x,a,l1)') 'assim_fake_ssh_child   ', assim_fake_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'rms_fake_ssh_child ', rms_fake_ssh_child
+       WRITE (*,'(5x,a,a)')  'file_fake_ssh_child    ', file_fake_ssh_child
+       WRITE (*,'(5x,a,l1)')     'twin_exp_fake_ssh_child  ', twin_exp_fake_ssh_child
+       WRITE (*,'(5x,a,es10.2)') 'noise_amp_fake_ssh_child ', noise_amp_fake_ssh_child
        WRITE (*,'(1x,a)') '-- End of PDAF configuration overview --'
 
     END IF showconf
