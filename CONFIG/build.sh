@@ -2,14 +2,17 @@
 
 module ()
 {
-    eval `/opt/modules/3.2.10.6/bin/modulecmd bash $*`
+    eval `/usr/local/Modules/bin/modulecmd bash $*`
 }
 
-module unload PrgEnv-cray
-module load PrgEnv-intel
-module unload ncview
+module unload cray-mpich
+module unload craype-network-ofi
+module load craype-network-ucx
+module load cray-mpich-ucx
+module load libfabric
 module load cray-hdf5-parallel
 module load cray-netcdf-hdf5parallel
+module load gcc
 
 touch prep_build
 
@@ -19,11 +22,11 @@ touch prep_build
 
 
 {
-    echo y | ./makenemo -n NEMO_Build -r ORCA2_LIM -m XC_ARCHER_INTEL -j0 clean_config
+    echo y | ./makenemo -n NEMO_Build -r ORCA2_LIM -m X86_ARCHER2-Cray -j 0 clean_config
 } >> prep_build 2>&1
 
 {
-    ./makenemo -n NEMO_Build -r ORCA2_LIM -m XC_ARCHER_INTEL -j0
+    ./makenemo -n NEMO_Build -r ORCA2_LIM -m X86_ARCHER2-Cray -j 0
 } >> prep_build 2>&1
 
 {
@@ -35,9 +38,5 @@ touch prep_build
 } >> prep_build 2>&1
 
 {
-    ./makenemo -n NEMO_Build -m XC_ARCHER_INTEL -j8
+    ./makenemo -n NEMO_Build -m X86_ARCHER2-Cray -j 8
 }
-
-module unload cray-hdf5-parallel
-module unload cray-netcdf-hdf5parallel
-module load ncview

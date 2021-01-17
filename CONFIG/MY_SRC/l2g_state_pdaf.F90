@@ -55,7 +55,7 @@ SUBROUTINE l2g_state_pdaf(step, domain_p, dim_l, state_l, dim_p, state_p)
   INTEGER :: i0, j0                ! Halo offset for local PE
   INTEGER :: loc_2d             ! 2D coordinate in statevector
   INTEGER :: dim_vert              ! Vertical dimension of local state vector
-  REAL(pwp), ALLOCATABLE :: v_coord(:) ! Array for converting vertical coordinate in
+  INTEGER, ALLOCATABLE :: v_coord(:)   ! Array for converting vertical coordinate in
                                        ! local state vector to parent grid.
 
 

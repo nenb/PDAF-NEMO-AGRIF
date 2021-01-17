@@ -140,7 +140,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      ! Create all netcdf output files
      firststep:IF (firsttime) THEN
         ! SSH
-        IF (output_ssh == .TRUE.) THEN
+        IF (output_ssh .EQV. .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for SSH analysis field.'
            var = 'sossheig'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
@@ -150,7 +150,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         END IF
 
         ! T
-        IF (output_T == .TRUE.) THEN
+        IF (output_T .EQV. .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for T analysis field.'
            var = 'votemper'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
@@ -160,7 +160,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         END IF
 
         ! S
-        IF (output_S == .TRUE.) THEN
+        IF (output_S .EQV. .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for S analysis field.'
            var = 'vosaline'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
@@ -170,7 +170,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         END IF
 
         ! U
-        IF (output_U == .TRUE.) THEN
+        IF (output_U .EQV. .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for U analysis field.'
            var = 'vozocrtx'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
@@ -180,7 +180,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
         END IF
 
         ! V
-        IF (output_V == .TRUE.) THEN
+        IF (output_V .EQV. .TRUE.) THEN
            WRITE (*, '(8x, a)') 'Initialize netcdf file for V analysis field.'
            var = 'vomecrty'
            CALL init_netcdf_asml(nit000_par, rdt_par, jpiglo_par, jpjglo_par, output_lev, trim(var), &
@@ -329,7 +329,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      rank_V = 4
      !
      ! SSH
-     gather_ssh: IF (output_ssh == .TRUE.) THEN
+     gather_ssh: IF (output_ssh .EQV. .TRUE.) THEN
         ! Gather ssh subset of ens_p on PE with *RANK 0* and store in ens_ssh.
         ! Set mpi_subd_vert=1 as SSH is a 2D field (ugly hack).
         CALL gather_ens(rank_ssh, mpi_subd_lon_par, mpi_subd_lat_par, 1, jpiglo_par, &
@@ -338,7 +338,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF gather_ssh
 
      ! T
-     gather_T: IF (output_T == .TRUE.) THEN
+     gather_T: IF (output_T .EQV. .TRUE.) THEN
         ! Gather T subset of ens_p on PE with *RANK 1* and store in ens_t.
         CALL gather_ens(rank_T, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
              jpiglo_par, jpjglo_par, jpk_par, t_p_dim_state_par, t_p_offset_par, dim_ens, &
@@ -346,7 +346,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF gather_T
 
      ! S
-     gather_S: IF (output_S == .TRUE.) THEN
+     gather_S: IF (output_S .EQV. .TRUE.) THEN
         ! Gather S subset of ens_p on PE with *RANK 2* and store in ens_s.
         CALL gather_ens(rank_S, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
              jpiglo_par, jpjglo_par, jpk_par, s_p_dim_state_par, s_p_offset_par, dim_ens,&
@@ -354,7 +354,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF gather_S
 
      ! U
-     gather_U: IF (output_U == .TRUE.) THEN
+     gather_U: IF (output_U .EQV. .TRUE.) THEN
         ! Gather U subset of ens_p on PE with *RANK 3* and store in ens_u.
         CALL gather_ens(rank_U, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
              jpiglo_par, jpjglo_par, jpk_par, u_p_dim_state_par, u_p_offset_par, dim_ens,&
@@ -362,7 +362,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF gather_U
 
      ! V
-     gather_v: IF (output_V == .TRUE.) THEN
+     gather_v: IF (output_V .EQV. .TRUE.) THEN
         ! Gather V subset of ens_p on PE with *RANK 4* and store in ens_v.
         CALL gather_ens(rank_V, mpi_subd_lon_par, mpi_subd_lat_par, mpi_subd_vert_par,&
              jpiglo_par, jpjglo_par, jpk_par, v_p_dim_state_par, v_p_offset_par, dim_ens,&
@@ -370,7 +370,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF gather_v
 
      ! SSH
-     write_ssh: IF (output_ssh == .TRUE. .AND. mype_filter == rank_ssh) THEN
+     write_ssh: IF (output_ssh .EQV. .TRUE. .AND. mype_filter == rank_ssh) THEN
         var='sossheig'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_ssh
@@ -383,7 +383,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF write_ssh
 
      ! T
-     write_T: IF (output_T == .TRUE. .AND. mype_filter == rank_T) THEN
+     write_T: IF (output_T .EQV. .TRUE. .AND. mype_filter == rank_T) THEN
         var='votemper'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_T
@@ -396,7 +396,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF write_T
 
      ! S
-     write_S: IF (output_S == .TRUE. .AND. mype_filter == rank_S) THEN
+     write_S: IF (output_S .EQV. .TRUE. .AND. mype_filter == rank_S) THEN
         var='vosaline'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_S
@@ -409,7 +409,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF write_S
 
      ! U
-     write_U: IF (output_U == .TRUE. .AND. mype_filter == rank_U) THEN
+     write_U: IF (output_U .EQV. .TRUE. .AND. mype_filter == rank_U) THEN
         var='vozocrtx'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_U
@@ -422,7 +422,7 @@ SUBROUTINE prepoststep_ens_pdaf(step, dim_p, dim_ens, dim_ens_p, dim_obs_p, &
      END IF write_U
 
      ! V
-     write_V: IF (output_V == .TRUE. .AND. mype_filter == rank_V) THEN
+     write_V: IF (output_V .EQV. .TRUE. .AND. mype_filter == rank_V) THEN
         var='vomecrty'
         WRITE (*, '(8x, a, 3x, a, 1x, a, 1x, i3)') '--- write ensemble for', var, &
              'on PE with rank:', rank_V
